@@ -1,4 +1,5 @@
 import { createHTMLElement } from "./utilities";
+import { createSVGIcon } from "./svgIcons";
 
 export class MovingWindow {
     constructor() {
@@ -155,8 +156,8 @@ export class DesktopDisplay {
                     createHTMLElement('div', {class: 'background'}),
                     createHTMLElement('div', {class: 'windows'}),
                     createHTMLElement('div', {class: 'actions'}, [
-                        createHTMLElement('div', {class: 'button terminal'}),
-                        createHTMLElement('div', {class: 'button'})
+                        createHTMLElement('div', {class: 'button terminal'}, [createSVGIcon('terminal')]),
+
                     ]),
                 ]),
                 
