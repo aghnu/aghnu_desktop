@@ -1,8 +1,19 @@
-function createHTMLElement(type, attributes={}, children=[], options={innerText: "", eventListeners: []}) {
+export class HTMLElementReference {
+    constructor() {
+        this.el = null;
+    }
+
+    getRef() {
+        return this.el;
+    }
+
+    setRef(el) {
+        this.el = el;
+    }
+}
+
+export function createHTMLElement(type, attributes={}, children=[], options={innerText: "", eventListeners: [], reference: null}) {
     const el = document.createElement(type);
-    
-    // set inner text if provided
-    el.innerText = options.innerText;
 
     // set element attributes
     for (let att in attributes) {
@@ -14,11 +25,22 @@ function createHTMLElement(type, attributes={}, children=[], options={innerText:
         el.appendChild(children[i]);
     }
 
-    // setup event listeners if provided
-    // element is passed to listener as the second argument
-    for (let i = 0; i < options.eventListeners.length; i++) {
-        const els = options.eventListeners[i];
-        el.addEventListener(els.event, (e) => {els.listener(e, el)});
+    // set options
+    if (options?.innerText) {
+        el.innerText = options.innerText;
+    }
+
+    if (options?.eventListeners) {                                          // setup event listeners if provided
+        for (let i = 0; i < options.eventListeners.length; i++) {
+            const els = options.eventListeners[i];
+            el.addEventListener(els.event, (e) => {els.listener(e, el)});   // element is passed to listener as the second argument
+        }        
+    }
+
+    if (options?.reference) {
+        if (options.reference !== null) {
+            options.reference.setRef(el);
+        }        
     }
     
     return el;

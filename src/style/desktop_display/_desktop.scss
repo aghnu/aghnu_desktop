@@ -1,0 +1,76 @@
+
+.desktop {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    
+    font-family: $desktop-font;
+
+    .toolbar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 2rem;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        .clock {
+
+        }
+    }
+    .container {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: calc(100% - 2rem);
+        width: 100%;
+        .background {
+            position: absolute;
+            z-index: 1;
+            height: 100%;
+            width: 100%;
+            border-radius: 1rem 1rem 0 0;
+            background-image: linear-gradient(to left top, #d16ba5, #c777b9, #ba83ca, #aa8fd8, #9a9ae1, #84a7ef, #68b5f7, #49c1fb, #00d3fc, #00e3f1, #00f0db, #5ffbbe);
+        }
+
+        .windows {
+            position: absolute;
+            z-index: 2;
+            height: 100%;
+            width: 100%;
+        }
+
+        .actions {
+            position: absolute;
+            z-index: 3;
+
+            bottom: 2rem;
+            left: 50%;
+
+            transform: translate(-50%);
+
+            height: 4.5rem;
+            width: 10rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.25);
+
+            background-color: #222222;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            gap: 1em;
+
+            .button {
+                width: 2.8em;
+                height: 2.8rem;
+                border-radius: 100%;
+                background-color: rgb(82, 82, 82);
+            }
+        }
+    }
+}
