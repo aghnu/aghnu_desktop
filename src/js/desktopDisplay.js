@@ -2,10 +2,10 @@ import { createHTMLElement } from "./utilities";
 import { createSVGIcon } from "./svgIcons";
 
 export class MovingWindow {
-    constructor(desktopDisplayManager) {
+    constructor(desktopDisplayManager, contentElement) {
+        this.contentElement = contentElement;
         this.windowElement = this.#constructWindow();
         this.desktopDisplayManager = desktopDisplayManager;
-
         this.windowState = {
             window: {
                 posX: 0,
@@ -59,7 +59,7 @@ export class MovingWindow {
                         ]),
                     ]),
                     createHTMLElement('div', {class: 'content'}, [
-                        createHTMLElement('iframe', {src: 'https://www.aghnu.me/', title: ""})
+                        (this.contentElement !== null) ? this.contentElement : null
                     ])
                 ]),
                 createHTMLElement('div', {class: 'panel-resize se'})
@@ -104,9 +104,10 @@ export class MovingWindow {
         let windowMouseDown = false;
         let windowStateSnapshot = JSON.parse(JSON.stringify(this.windowState));
 
-        document.addEventListener(('mousemove'), (e) => {
-            this.windowState.mouse.posX = e.clientX;
-            this.windowState.mouse.posY = e.clientY;
+
+        const pointerMoveFunc = (x, y) => {
+            this.windowState.mouse.posX = x;
+            this.windowState.mouse.posY = y;
 
             if (windowMouseDown) {
                 const desktopAreaSize = this.desktopDisplayManager.getDesktopAreaSize();
@@ -115,20 +116,31 @@ export class MovingWindow {
                 const posY = (windowStateSnapshot.window.posY * desktopAreaSize[1] + this.windowState.mouse.posY - windowStateSnapshot.mouse.posY);
                 this.#updateStateWindowPosition(posX, posY);
                 this.#updateWindow();
-            }
-        });
-        
-        windowTitleBarElement.addEventListener('mousedown', (e) => {
-            e.preventDefault();
+            }            
+        }
+
+        document.addEventListener(('mousemove'), (e) => {pointerMoveFunc(e.clientX, e.clientY)});
+        document.addEventListener(('touchmove'), (e) => {pointerMoveFunc(e.touches[0].clientX, e.touches[0].clientY)});
+
+
+        const pointerDownFunc = (x, y) => {
+            this.windowState.mouse.posX = x;
+            this.windowState.mouse.posY = y;
             this.windowElement.classList.add('moving');
             windowStateSnapshot = JSON.parse(JSON.stringify(this.windowState));
-            windowMouseDown = true;
-        });
-        
-        document.addEventListener('mouseup', (e) => {
+            windowMouseDown = true;            
+        }
+
+        const pointerUpFunc = () => {
             this.windowElement.classList.remove('moving');
             windowMouseDown = false;
-        });
+        }
+        
+        windowTitleBarElement.addEventListener('mousedown', (e) => {e.preventDefault(); pointerDownFunc(e.clientX, e.clientY)});
+        windowTitleBarElement.addEventListener('touchstart', (e) => {e.preventDefault(); pointerDownFunc(e.touches[0].clientX, e.touches[0].clientY)});
+        
+        document.addEventListener('mouseup', pointerUpFunc);
+        document.addEventListener('touchend', pointerUpFunc);
     }
 
     #initResizePanel() {
@@ -136,27 +148,37 @@ export class MovingWindow {
         let windowMouseDown = false;
         let windowStateSnapshot = JSON.parse(JSON.stringify(this.windowState));
         
-        resizeButton.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            
-            this.windowElement.classList.add('moving');
-            windowStateSnapshot = JSON.parse(JSON.stringify(this.windowState));
-            windowMouseDown = true;
-        });
-        
-        document.addEventListener('mouseup', (e) => {
-            this.windowElement.classList.remove('moving');
-            windowMouseDown = false;
-        });
-
-        document.addEventListener(('mousemove'), (e) => {
+        const pointerMoveFunc = () => {
             if (windowMouseDown) {
                 const sizeX = windowStateSnapshot.window.sizeX + this.windowState.mouse.posX - windowStateSnapshot.mouse.posX;
                 const sizeY = windowStateSnapshot.window.sizeY + this.windowState.mouse.posY - windowStateSnapshot.mouse.posY
                 this.#updateStateWindowSize(sizeX, sizeY);
                 this.#updateWindow();
             }
-        });
+        }
+
+        const pointerDownFunc = (x, y) => {
+            this.windowState.mouse.posX = x;
+            this.windowState.mouse.posY = y;
+            this.windowElement.classList.add('moving');
+            windowStateSnapshot = JSON.parse(JSON.stringify(this.windowState));
+            windowMouseDown = true;
+        }
+
+        const pointerUpFunc = () => {
+            this.windowElement.classList.remove('moving');
+            windowMouseDown = false;
+        }
+
+        document.addEventListener(('mousemove'), pointerMoveFunc);
+        document.addEventListener(('touchmove'), pointerMoveFunc);
+
+        resizeButton.addEventListener('mousedown', (e) => {e.preventDefault(); pointerDownFunc(e.clientX, e.clientY)});
+        resizeButton.addEventListener('touchstart', (e) => {e.preventDefault(); pointerDownFunc(e.touches[0].clientX, e.touches[0].clientY)});
+        
+        document.addEventListener('mouseup', pointerUpFunc);
+        document.addEventListener('touchend', pointerUpFunc);
+
     }
 
     getWindow() {
@@ -167,6 +189,7 @@ export class MovingWindow {
 export class DesktopDisplay {
     constructor(parentContainer) {
         this.parentContainer = parentContainer;
+        
         this.desktopElement = this.#contructDesktop();
         this.desktopElementWindowsContainer = this.desktopElement.querySelector('.container .windows');
         this.desktopElementActionsBar = this.desktopElement.querySelector('.container .actions');
@@ -185,7 +208,9 @@ export class DesktopDisplay {
 
         const updateClock = () => {
             const date = new Date();
-            clock.innerHTML = date.toLocaleDateString('en-CA', {year: 'numeric', month: 'long', day: 'numeric'}) + "&nbsp&nbsp&nbsp" + date.toLocaleTimeString('en-CA');
+            // clock.innerHTML = date.toLocaleDateString('en-CA', {year: 'numeric', month: 'long', day: 'numeric'}) + "&nbsp&nbsp&nbsp" + date.toLocaleTimeString('en-CA');
+
+            clock.innerHTML = date.toLocaleTimeString('en-CA');
         }
 
         updateClock();
@@ -224,7 +249,7 @@ export class DesktopDisplay {
             const padding = windowsAreaSizeY - actionBarTop - actionBarHeight;
             
             const areaContentX = windowsAreaSizeX;
-            const areaContentY = windowsAreaSizeY - actionBarHeight - padding * 2;    
+            const areaContentY = windowsAreaSizeY - actionBarHeight - padding * 1.5;    
 
             return [areaContentX, areaContentY];        
         } else {
@@ -234,8 +259,8 @@ export class DesktopDisplay {
 
     }
 
-    openWindow() {
-        const newWindow = new MovingWindow(this);
+    openWindow(contentElement=null) {
+        const newWindow = new MovingWindow(this, contentElement);
         this.movingWins.push(newWindow);
         this.desktopElementWindowsContainer.appendChild(newWindow.getWindow());
     }

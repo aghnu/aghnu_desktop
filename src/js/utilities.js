@@ -22,7 +22,10 @@ export function createHTMLElement(type, attributes={}, children=[], options={inn
 
     // append children
     for (let i = 0; i < children.length; i++) {
-        el.appendChild(children[i]);
+        if ((children[i] !== null) && (children[i] !== undefined)) {
+            el.appendChild(children[i]);
+        }
+        
     }
 
     // set options
