@@ -10,10 +10,10 @@ export class MovingWindow {
             window: {
                 posX: 0,
                 posY: 0,
-                sizeX: 500,
-                sizeY: 500,
-                sizeMinX: 300,
-                sizeMinY: 400,
+                sizeX: 0,
+                sizeY: 0,
+                sizeMinX: 320,
+                sizeMinY: 420,
                 borderOverEdge: 50,         // 50px
             },
 
@@ -23,9 +23,28 @@ export class MovingWindow {
             }
         }
 
+        this.#initPosition();
         this.#initListerner();
         this.#updateWindow();
         this.#initResizePanel();
+    }
+
+    #initPosition() {
+        const SIZE_PERC_Y = 0.95;
+        const SIZE_PERC_X = 0.65;
+        
+        const areaSize = this.desktopDisplayManager.getDesktopAreaSize(true);
+
+        const initSizeX = SIZE_PERC_X * areaSize[0];
+        const initSizeY = SIZE_PERC_Y * areaSize[1];
+
+        const initPosX = (areaSize[0] - initSizeX) / 2;
+        const initPosY = (areaSize[1] - initSizeY) / 2;
+
+        this.windowState.window.posX = initPosX / areaSize[0];
+        this.windowState.window.posY = initPosY / areaSize[1];
+        this.windowState.window.sizeX = initSizeX;
+        this.windowState.window.sizeY = initSizeY;
     }
 
     #constructWindow() {
@@ -63,8 +82,8 @@ export class MovingWindow {
         const minX = 0 - (this.windowState.window.sizeX - this.windowState.window.borderOverEdge);
         const minY = 0;
 
-        this.windowState.window.posX = Math.min(Math.max(x, minX), maxX);
-        this.windowState.window.posY = Math.min(Math.max(y, minY), maxY);
+        this.windowState.window.posX = Math.min(Math.max(x, minX), maxX) / size[0];
+        this.windowState.window.posY = Math.min(Math.max(y, minY), maxY) / size[1];
 
         // this.windowState.window.posX = Math.min(Math.max(x, 0), maxX);
         // this.windowState.window.posY = Math.min(Math.max(y, 0), maxY);
@@ -72,8 +91,8 @@ export class MovingWindow {
 
     #updateWindow() {
         // position
-        this.windowElement.style.left = `${this.windowState.window.posX}px`;
-        this.windowElement.style.top = `${this.windowState.window.posY}px`;   
+        this.windowElement.style.left = `${this.windowState.window.posX * 100}%`;
+        this.windowElement.style.top = `${this.windowState.window.posY * 100}%`;   
 
         // size
         this.windowElement.style.width = `${this.windowState.window.sizeX}px`;
@@ -90,8 +109,10 @@ export class MovingWindow {
             this.windowState.mouse.posY = e.clientY;
 
             if (windowMouseDown) {
-                const posX = windowStateSnapshot.window.posX + this.windowState.mouse.posX - windowStateSnapshot.mouse.posX;
-                const posY = windowStateSnapshot.window.posY + this.windowState.mouse.posY - windowStateSnapshot.mouse.posY;
+                const desktopAreaSize = this.desktopDisplayManager.getDesktopAreaSize();
+
+                const posX = (windowStateSnapshot.window.posX * desktopAreaSize[0] + this.windowState.mouse.posX - windowStateSnapshot.mouse.posX);
+                const posY = (windowStateSnapshot.window.posY * desktopAreaSize[1] + this.windowState.mouse.posY - windowStateSnapshot.mouse.posY);
                 this.#updateStateWindowPosition(posX, posY);
                 this.#updateWindow();
             }
@@ -151,16 +172,34 @@ export class DesktopDisplay {
         this.desktopElementActionsBar = this.desktopElement.querySelector('.container .actions');
         this.movingWins = [];
 
+        this.clockInterval = null;
+
         // init
         this.parentContainer.appendChild(this.desktopElement);
+        this.#initClock();
+    }
+
+    #initClock() {
+        const toolbar = this.desktopElement.querySelector('.toolbar');
+        const clock = createHTMLElement('p', {class: 'clock'});
+
+        const updateClock = () => {
+            const date = new Date();
+            clock.innerHTML = date.toLocaleDateString('en-CA', {year: 'numeric', month: 'long', day: 'numeric'}) + "&nbsp&nbsp&nbsp" + date.toLocaleTimeString('en-CA');
+        }
+
+        updateClock();
+        this.clockInterval = setInterval(() => {
+            updateClock();
+        }, 1000);
+        
+        toolbar.appendChild(clock);
     }
 
     #contructDesktop() {
         const el = 
             createHTMLElement('div', {class: 'desktop'}, [
-                createHTMLElement('div', {class: 'toolbar'}, [
-                    createHTMLElement('p', {class: 'clock'}, [], {innerText: '4:41 PM'})
-                ]),
+                createHTMLElement('div', {class: 'toolbar'}),
                 createHTMLElement('div', {class: 'container'}, [
                     createHTMLElement('div', {class: 'background'}),
                     createHTMLElement('div', {class: 'windows'}),
@@ -174,22 +213,24 @@ export class DesktopDisplay {
         return el;
     }
 
-    getDesktopAreaSize() {
+    getDesktopAreaSize(contentArea=false) {
         const windowsAreaSizeX = this.desktopElementWindowsContainer.offsetWidth;
         const windowsAreaSizeY = this.desktopElementWindowsContainer.offsetHeight;
 
-        const actionBarHeight = this.desktopElementActionsBar.offsetHeight;
-        const actionBarTop = this.desktopElementActionsBar.offsetTop;
+        if (contentArea) {
+            const actionBarHeight = this.desktopElementActionsBar.offsetHeight;
+            const actionBarTop = this.desktopElementActionsBar.offsetTop;
+    
+            const padding = windowsAreaSizeY - actionBarTop - actionBarHeight;
+            
+            const areaContentX = windowsAreaSizeX;
+            const areaContentY = windowsAreaSizeY - actionBarHeight - padding * 2;    
 
-        const padding = windowsAreaSizeY - actionBarTop - actionBarHeight;
+            return [areaContentX, areaContentY];        
+        } else {
 
-        // const areaX = windowsAreaSizeX;
-        // const areaY = windowsAreaSizeY - actionBarHeight - padding * 2;
-
-        const areaX = windowsAreaSizeX;
-        const areaY = windowsAreaSizeY;
-
-        return [areaX, areaY];
+            return [windowsAreaSizeX, windowsAreaSizeY];
+        }
 
     }
 
