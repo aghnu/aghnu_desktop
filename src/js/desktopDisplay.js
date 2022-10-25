@@ -2,18 +2,19 @@ import { createHTMLElement } from "./utilities";
 import { createSVGIcon } from "./svgIcons";
 
 export class MovingWindow {
-    constructor() {
+    constructor(desktopDisplayManager) {
         this.windowElement = this.#constructWindow();
-        
+        this.desktopDisplayManager = desktopDisplayManager;
+
         this.windowState = {
             window: {
-                posX: 50,
-                posY: 50,
+                posX: 0,
+                posY: 0,
                 sizeX: 500,
                 sizeY: 500,
                 sizeMinX: 300,
                 sizeMinY: 400,
-                padding: 5,
+                borderOverEdge: 50,         // 50px
             },
 
             mouse: {
@@ -54,12 +55,19 @@ export class MovingWindow {
     }
 
     #updateStateWindowPosition(x, y) {
-        const maxX = window.innerWidth - this.windowState.window.sizeX;
-        const maxY = window.innerHeight - this.windowState.window.sizeY;
+        const size = this.desktopDisplayManager.getDesktopAreaSize();
 
+        const maxX = size[0] - this.windowState.window.borderOverEdge;
+        const maxY = size[1] - this.windowState.window.borderOverEdge;
 
-        this.windowState.window.posX = Math.min(Math.max(x, 0), maxX);
-        this.windowState.window.posY = Math.min(Math.max(y, 0), maxY);
+        const minX = 0 - (this.windowState.window.sizeX - this.windowState.window.borderOverEdge);
+        const minY = 0;
+
+        this.windowState.window.posX = Math.min(Math.max(x, minX), maxX);
+        this.windowState.window.posY = Math.min(Math.max(y, minY), maxY);
+
+        // this.windowState.window.posX = Math.min(Math.max(x, 0), maxX);
+        // this.windowState.window.posY = Math.min(Math.max(y, 0), maxY);
     }
 
     #updateWindow() {
@@ -140,6 +148,7 @@ export class DesktopDisplay {
         this.parentContainer = parentContainer;
         this.desktopElement = this.#contructDesktop();
         this.desktopElementWindowsContainer = this.desktopElement.querySelector('.container .windows');
+        this.desktopElementActionsBar = this.desktopElement.querySelector('.container .actions');
         this.movingWins = [];
 
         // init
@@ -165,8 +174,27 @@ export class DesktopDisplay {
         return el;
     }
 
+    getDesktopAreaSize() {
+        const windowsAreaSizeX = this.desktopElementWindowsContainer.offsetWidth;
+        const windowsAreaSizeY = this.desktopElementWindowsContainer.offsetHeight;
+
+        const actionBarHeight = this.desktopElementActionsBar.offsetHeight;
+        const actionBarTop = this.desktopElementActionsBar.offsetTop;
+
+        const padding = windowsAreaSizeY - actionBarTop - actionBarHeight;
+
+        // const areaX = windowsAreaSizeX;
+        // const areaY = windowsAreaSizeY - actionBarHeight - padding * 2;
+
+        const areaX = windowsAreaSizeX;
+        const areaY = windowsAreaSizeY;
+
+        return [areaX, areaY];
+
+    }
+
     openWindow() {
-        const newWindow = new MovingWindow();
+        const newWindow = new MovingWindow(this);
         this.movingWins.push(newWindow);
         this.desktopElementWindowsContainer.appendChild(newWindow.getWindow());
     }
