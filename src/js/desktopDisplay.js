@@ -279,8 +279,6 @@ export class DesktopDisplay {
         const windowsAreaSizeX = this.desktopElementWindowsContainer.offsetWidth;
         const windowsAreaSizeY = this.desktopElementWindowsContainer.offsetHeight;
 
-        console.log(windowsAreaSizeX, windowsAreaSizeY);
-
         if (contentArea) {
             const actionBarHeight = this.desktopElementActionsBar.offsetHeight;
             const actionBarTop = this.desktopElementActionsBar.offsetTop;
