@@ -1,4 +1,4 @@
-import { createHTMLElement } from "./utilities";
+import { createHTMLElement,addButtonBehavior } from "./utilities";
 import { createSVGIcon } from "./svgIcons";
 
 export class MovingWindow {
@@ -184,6 +184,14 @@ export class MovingWindow {
     getWindow() {
         return this.windowElement;
     }
+
+    loadContent(content) {
+        
+        const contentContainer = this.windowElement.querySelector('.panel-content .content')
+        this.contentElement = content;
+        contentContainer.innerHTML = '';
+        contentContainer.appendChild(this.contentElement);
+    }
 }
 
 export class DesktopDisplay {
@@ -200,6 +208,7 @@ export class DesktopDisplay {
         // init
         this.parentContainer.appendChild(this.desktopElement);
         this.#initClock();
+        this.#initActionApps();
     }
 
     #initClock() {
@@ -238,9 +247,39 @@ export class DesktopDisplay {
         return el;
     }
 
+    #initActionApps() {
+        // terminal open
+        const buttonTerminal = this.desktopElementActionsBar.querySelector('.terminal');
+        addButtonBehavior(buttonTerminal, () => {
+            buttonTerminal.classList.add('pressed');
+        }, () => {
+            this.openApp('console');
+            buttonTerminal.classList.remove('pressed');
+        })
+    }
+
+    openApp(name) {
+        switch (name) {
+            case 'console':
+                this.openWindow(createHTMLElement('iframe', {src: 'https://www.aghnu.me/', title: "Aghnu's Console"}));
+                break;
+            default:
+                break;
+        }
+    }
+
+    openWindow(contentElement=null) {
+        const newWindow = new MovingWindow(this, contentElement);
+        this.movingWins.push(newWindow);
+        this.desktopElementWindowsContainer.appendChild(newWindow.getWindow());
+        return newWindow;
+    }
+
     getDesktopAreaSize(contentArea=false) {
         const windowsAreaSizeX = this.desktopElementWindowsContainer.offsetWidth;
         const windowsAreaSizeY = this.desktopElementWindowsContainer.offsetHeight;
+
+        console.log(windowsAreaSizeX, windowsAreaSizeY);
 
         if (contentArea) {
             const actionBarHeight = this.desktopElementActionsBar.offsetHeight;
@@ -256,13 +295,6 @@ export class DesktopDisplay {
 
             return [windowsAreaSizeX, windowsAreaSizeY];
         }
-
-    }
-
-    openWindow(contentElement=null) {
-        const newWindow = new MovingWindow(this, contentElement);
-        this.movingWins.push(newWindow);
-        this.desktopElementWindowsContainer.appendChild(newWindow.getWindow());
     }
 }
 

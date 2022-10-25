@@ -83,14 +83,15 @@
             overflow: hidden;
 
             .button {
-                width: 3.5rem;
-                height: 3.5rem;
+                width: 3.5em;
+                height: 3.5em;
                 border-radius: 100%;
+                transition: font-size 0.25s;
                 // background-color: rgb(82, 82, 82);
 
                 .icon {
-                    padding: 0.25rem;
-                    transition: all 0.25s;
+                    padding: 0.25em;
+                    transition: padding 0.25s;
                     cursor: pointer;
                 }
 
@@ -98,7 +99,10 @@
                     .icon {
                         padding: 0;
                     }
-                    
+                }
+
+                &.pressed {
+                    font-size: 0.8em;
                 }
 
 

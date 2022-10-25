@@ -48,3 +48,54 @@ export function createHTMLElement(type, attributes={}, children=[], options={inn
     
     return el;
 }
+
+
+export const addButtonBehavior = (btnEl, downFunc, upFunc) => {
+    let buttonDown = false;
+
+    // touch events
+    btnEl.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        buttonDown = true;                   
+        downFunc();
+    });
+
+    btnEl.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        buttonDown = false;
+        upFunc();
+    });
+
+    btnEl.addEventListener('touchcancel', (e) => {
+        e.preventDefault();
+        buttonDown = false;
+        upFunc();
+    });
+
+    btnEl.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        buttonDown = true;
+        downFunc();
+    });
+
+    btnEl.addEventListener('mouseup', (e) => {
+        e.preventDefault();
+        buttonDown = false;
+        upFunc();
+    });
+
+    //global up
+    document.addEventListener('mouseup', (e) => {
+        if (buttonDown) {
+            buttonDown = false;
+            upFunc();
+        }
+    });
+
+    document.addEventListener('touchend', (e) => {
+        if (buttonDown) {
+            buttonDown = false;
+            upFunc();
+        }
+    });
+}
