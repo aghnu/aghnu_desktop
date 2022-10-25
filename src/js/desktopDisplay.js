@@ -30,12 +30,14 @@ export class MovingWindow {
     }
 
     #initPosition() {
-        const SIZE_PERC_Y = 0.95;
-        const SIZE_PERC_X = 0.95;
         
         const areaSize = this.desktopDisplayManager.getDesktopAreaSize(true);
+        
+        const SIZE_PERC_Y = 0.95;
+        const SIZE_PERC_X = 0.95;
+        const SIZE_MAX_X = 1000;
 
-        const initSizeX = SIZE_PERC_X * areaSize[0];
+        const initSizeX = Math.min(SIZE_PERC_X * areaSize[0], SIZE_MAX_X);
         const initSizeY = SIZE_PERC_Y * areaSize[1];
 
         const initPosX = (areaSize[0] - initSizeX) / 2;
