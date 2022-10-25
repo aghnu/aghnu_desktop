@@ -40,6 +40,7 @@
             z-index: 1;
             height: 100%;
             width: 100%;
+            box-shadow: 0 0 0.75rem rgba(0, 0, 0, 0.35);
             border-radius: 1rem 1rem 0 0;
             background-image: linear-gradient(to left top, #d16ba5, #c777b9, #ba83ca, #aa8fd8, #9a9ae1, #84a7ef, #68b5f7, #49c1fb, #00d3fc, #00e3f1, #00f0db, #5ffbbe);
             overflow: hidden;
@@ -69,7 +70,7 @@
             height: 5rem;
             width: fit-content;
             border-radius: 1.5rem;
-            box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.25);
+            box-shadow: 0 0 0.75rem rgba(0, 0, 0, 0.35);
 
             background-color: #222222;
 

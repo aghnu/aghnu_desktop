@@ -31,7 +31,7 @@ export class MovingWindow {
 
     #initPosition() {
         const SIZE_PERC_Y = 0.95;
-        const SIZE_PERC_X = 0.65;
+        const SIZE_PERC_X = 0.95;
         
         const areaSize = this.desktopDisplayManager.getDesktopAreaSize(true);
 
