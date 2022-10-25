@@ -106,7 +106,11 @@ export class MovingWindow {
         let windowMouseDown = false;
         let windowStateSnapshot = JSON.parse(JSON.stringify(this.windowState));
 
+        // on top
+        this.windowElement.addEventListener('mousedown', () => {this.desktopDisplayManager.moveWindowToTop(this)});
+        this.windowElement.addEventListener('touchstart', () => {this.desktopDisplayManager.moveWindowToTop(this)});
 
+        // re position
         const pointerMoveFunc = (x, y) => {
             this.windowState.mouse.posX = x;
             this.windowState.mouse.posY = y;
@@ -121,8 +125,8 @@ export class MovingWindow {
             }            
         }
 
-        document.addEventListener(('mousemove'), (e) => {pointerMoveFunc(e.clientX, e.clientY)});
-        document.addEventListener(('touchmove'), (e) => {pointerMoveFunc(e.touches[0].clientX, e.touches[0].clientY)});
+        document.addEventListener('mousemove', (e) => {pointerMoveFunc(e.clientX, e.clientY)});
+        document.addEventListener('touchmove', (e) => {pointerMoveFunc(e.touches[0].clientX, e.touches[0].clientY)});
 
 
         const pointerDownFunc = (x, y) => {
@@ -252,12 +256,40 @@ export class DesktopDisplay {
     #initActionApps() {
         // terminal open
         const buttonTerminal = this.desktopElementActionsBar.querySelector('.terminal');
-        addButtonBehavior(buttonTerminal, () => {
+        const buttonTerminalDownFunc = () => {
             buttonTerminal.classList.add('pressed');
-        }, () => {
+        }
+        const buttonTerminalUpFunc = () => {
             this.openApp('console');
-            buttonTerminal.classList.remove('pressed');
-        })
+            buttonTerminal.classList.remove('pressed');            
+        }
+        
+        setTimeout(() => {
+            buttonTerminalDownFunc();
+            setTimeout(() => {
+                buttonTerminalUpFunc();
+                addButtonBehavior(buttonTerminal, buttonTerminalDownFunc, buttonTerminalUpFunc);
+            }, 250);
+        }, 250);
+    }
+
+    refreshWindowOrder() {
+        const totalWins = this.movingWins.length;
+        for (let i = 0; i < totalWins; i++) {
+            const win = this.movingWins[i];
+            win.getWindow().style.zIndex = i;
+            if (i < (totalWins - 1)) {
+                win.getWindow().classList.add('backstage');
+            } else {
+                win.getWindow().classList.remove('backstage');
+            }
+        }
+    }
+
+    moveWindowToTop(window) {
+        this.movingWins = this.movingWins.filter((el) => {return window !== el});
+        this.movingWins.push(window);
+        this.refreshWindowOrder();
     }
 
     openApp(name) {
@@ -274,6 +306,7 @@ export class DesktopDisplay {
         const newWindow = new MovingWindow(this, contentElement);
         this.movingWins.push(newWindow);
         this.desktopElementWindowsContainer.appendChild(newWindow.getWindow());
+        this.refreshWindowOrder();
         return newWindow;
     }
 
