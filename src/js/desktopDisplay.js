@@ -275,14 +275,18 @@ export class DesktopDisplay {
 
     refreshWindowOrder() {
         const totalWins = this.movingWins.length;
-        for (let i = 0; i < totalWins; i++) {
-            const win = this.movingWins[i];
-            win.getWindow().style.zIndex = i;
-            if (i < (totalWins - 1)) {
-                win.getWindow().classList.add('backstage');
-            } else {
-                win.getWindow().classList.remove('backstage');
+
+        if (totalWins > 0) {
+            const frontWindow = this.movingWins[totalWins - 1].getWindow()
+            frontWindow.style.zIndex = totalWins - 1;
+            frontWindow.classList.add('frontstage');
+
+            for (let i = totalWins - 2; i >= 0; i--) {
+                const win = this.movingWins[i];
+                win.getWindow().style.zIndex = i;
+                win.getWindow().classList.remove('frontstage');
             }
+
         }
     }
 
