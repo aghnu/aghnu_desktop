@@ -36,10 +36,11 @@ export class MovingWindow {
         
         const SIZE_PERC_Y = 0.95;
         const SIZE_PERC_X = 0.95;
-        const SIZE_MAX_X = 1000;
-
-        const initSizeX = Math.min(SIZE_PERC_X * areaSize[0], SIZE_MAX_X);
+        const SIZE_RATIO_XY = 4/3;
+        
         const initSizeY = SIZE_PERC_Y * areaSize[1];
+        const initSizeX = Math.min(SIZE_PERC_X * areaSize[0], SIZE_RATIO_XY * initSizeY);
+        
 
         const initPosX = (areaSize[0] - initSizeX) / 2;
         const initPosY = (areaSize[1] - initSizeY) / 2;
