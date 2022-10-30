@@ -10,6 +10,7 @@ export class MovingWindow {
             window: {
                 posX: 0,
                 posY: 0,
+                posXR: 0,
                 sizeX: 0,
                 sizeY: 0,
                 sizeMinX: 320,
@@ -73,19 +74,27 @@ export class MovingWindow {
     #updateStateWindowSize(x, y) {
         this.windowState.window.sizeX = Math.max(x, this.windowState.window.sizeMinX);
         this.windowState.window.sizeY = Math.max(y, this.windowState.window.sizeMinY);
+
+        // update position due to size change
+        this.#updateStateWindowPosition();
     }
 
-    #updateStateWindowPosition(x, y) {
-        const size = this.desktopDisplayManager.getDesktopAreaSize();
+    #updateStateWindowPosition(x=null, y=null) {
 
+        // if x or y not given, calculate its value based on current percentage
+        const size = this.desktopDisplayManager.getDesktopAreaSize();
+        const posXNew = (x !== null) ? x : this.windowState.window.posX * size[0];
+        const posYNew = (y !== null) ? y : this.windowState.window.posY * size[1];
+        
         const maxX = size[0] - this.windowState.window.borderOverEdge;
         const maxY = size[1] - this.windowState.window.borderOverEdge;
 
         const minX = 0 - (this.windowState.window.sizeX - this.windowState.window.borderOverEdge);
         const minY = 0;
 
-        this.windowState.window.posX = Math.min(Math.max(x, minX), maxX) / size[0];
-        this.windowState.window.posY = Math.min(Math.max(y, minY), maxY) / size[1];
+        this.windowState.window.posXR = (Math.min(Math.max(posXNew, minX), maxX) + this.windowState.window.sizeX) / size[0];
+        this.windowState.window.posX = Math.min(Math.max(posXNew, minX), maxX) / size[0];
+        this.windowState.window.posY = Math.min(Math.max(posYNew, minY), maxY) / size[1];
 
         // this.windowState.window.posX = Math.min(Math.max(x, 0), maxX);
         // this.windowState.window.posY = Math.min(Math.max(y, 0), maxY);
@@ -93,8 +102,18 @@ export class MovingWindow {
 
     #updateWindow() {
         // position
-        this.windowElement.style.left = `${this.windowState.window.posX * 100}%`;
+        
         this.windowElement.style.top = `${this.windowState.window.posY * 100}%`;   
+        if (this.windowState.window.posX < 0) {
+            this.windowElement.style.left = 'unset';
+            this.windowElement.style.right = `${(1 - this.windowState.window.posXR) * 100}%`;
+        } else {
+            this.windowElement.style.right = 'unset';
+            this.windowElement.style.left = `${this.windowState.window.posX * 100}%`;
+        }
+
+        
+        
 
         // size
         this.windowElement.style.width = `${this.windowState.window.sizeX}px`;
