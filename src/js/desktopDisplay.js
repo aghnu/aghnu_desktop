@@ -2,7 +2,7 @@ import { createHTMLElement,addButtonBehavior } from "./utilities";
 import { createSVGIcon } from "./svgIcons";
 
 export class MovingWindow {
-    constructor(desktopDisplayManager, contentElement) {
+    constructor(desktopDisplayManager, contentElement, options={}) {
         this.contentElement = contentElement;
         this.windowElement = this.#constructWindow();
         this.desktopDisplayManager = desktopDisplayManager;
@@ -12,8 +12,10 @@ export class MovingWindow {
                 posY: 0,
                 sizeX: 0,
                 sizeY: 0,
-                sizeMinX: 320,
-                sizeMinY: 420,
+                sizeMinX: 350,
+                sizeMinY: 450,
+                sizeMaxX: options?.sizeMaxX,
+                sizeMaxY: options?.sizeMaxY,
                 borderOverEdge: 50,         // 50px
             },
 
@@ -39,22 +41,26 @@ export class MovingWindow {
         
         const initSizeY = SIZE_PERC_Y * areaSize[1];
         const initSizeX = Math.min(SIZE_PERC_X * areaSize[0], SIZE_RATIO_XY * initSizeY);
+        this.#updateStateWindowSize(initSizeX, initSizeY);
+
+        const initPosX = (areaSize[0] - this.windowState.window.sizeX) / 2;
+        const initPosY = (areaSize[1] - this.windowState.window.sizeY) / 2;
+        this.#updateStateWindowPosition(initPosX, initPosY);
         
 
-        const initPosX = (areaSize[0] - initSizeX) / 2;
-        const initPosY = (areaSize[1] - initSizeY) / 2;
-
-        this.windowState.window.posX = initPosX;
-        this.windowState.window.posY = initPosY;
-        this.windowState.window.sizeX = initSizeX;
-        this.windowState.window.sizeY = initSizeY;
+        // this.windowState.window.posX = initPosX;
+        // this.windowState.window.posY = initPosY;
+        // this.windowState.window.sizeX = initSizeX;
+        // this.windowState.window.sizeY = initSizeY;
     }
 
     #constructWindow() {
         const el = 
             createHTMLElement('div', {class: 'window'}, [
                 createHTMLElement('div', {class: 'panel-content'}, [
+                    
                     createHTMLElement('div', {class: 'titlebar'}, [
+                        createHTMLElement('div', {class: 'movingbar'}),
                         createHTMLElement('div', {class: 'control'}, [
                             createHTMLElement('div', {class: 'button fullscreen'}),
                             createHTMLElement('div', {class: 'button close'})
@@ -71,8 +77,17 @@ export class MovingWindow {
     }
 
     #updateStateWindowSize(x, y) {
-        this.windowState.window.sizeX = Math.max(x, this.windowState.window.sizeMinX);
-        this.windowState.window.sizeY = Math.max(y, this.windowState.window.sizeMinY);
+
+
+        this.windowState.window.sizeX = (this.windowState.window.sizeMaxX) 
+            ? Math.min(Math.max(x, this.windowState.window.sizeMinX), this.windowState.window.sizeMaxX)
+            : Math.max(x, this.windowState.window.sizeMinX);
+
+
+        this.windowState.window.sizeY = (this.windowState.window.sizeMaxY) 
+            ? Math.min(Math.max(y, this.windowState.window.sizeMinY), this.windowState.window.sizeMaxY)
+            : Math.max(y, this.windowState.window.sizeMinY);
+
     }
 
     #updateStateWindowPosition(x, y) {
@@ -104,13 +119,13 @@ export class MovingWindow {
     }
 
     #initListerner() {
-        const windowTitleBarElement = this.windowElement.querySelector('.titlebar');
+        const windowTitleBarElement = this.windowElement.querySelector('.titlebar .movingbar');
         let windowMouseDown = false;
         let windowStateSnapshot = JSON.parse(JSON.stringify(this.windowState));
 
         // on top
-        this.windowElement.addEventListener('mousedown', () => {this.desktopDisplayManager.moveWindowToTop(this)});
-        this.windowElement.addEventListener('touchstart', () => {this.desktopDisplayManager.moveWindowToTop(this)});
+        this.windowElement.addEventListener('mousedown', (e) => {e.cancelBubble = true;this.desktopDisplayManager.moveWindowToTop(this)});
+        this.windowElement.addEventListener('touchstart', (e) => {e.cancelBubble = true;this.desktopDisplayManager.moveWindowToTop(this)});
 
         // re position
         const pointerMoveFunc = (x, y) => {
@@ -259,6 +274,14 @@ export class DesktopDisplay {
                 });
             }
         });
+
+        const lostFocus = () => {
+            
+        }
+
+        this.desktopElement.addEventListener('mousedown', () => {this.refreshWindowOrder(true)});
+        this.desktopElement.addEventListener('touchstart', () => {this.refreshWindowOrder(true)});
+
     }
 
     #initClock() {
@@ -317,21 +340,31 @@ export class DesktopDisplay {
         }, 250);
     }
 
-    refreshWindowOrder() {
+    refreshWindowOrder(lostFocus = false) {
         const totalWins = this.movingWins.length;
 
-        if (totalWins > 0) {
-            const frontWindow = this.movingWins[totalWins - 1].getWindow()
-            frontWindow.style.zIndex = totalWins - 1;
-            frontWindow.classList.add('frontstage');
-
-            for (let i = totalWins - 2; i >= 0; i--) {
+        if (lostFocus) {
+            for (let i = totalWins - 1; i >= 0; i--) {
                 const win = this.movingWins[i];
                 win.getWindow().style.zIndex = i;
                 win.getWindow().classList.remove('frontstage');
             }
+        } else {
+            if (totalWins > 0) {
+                const frontWindow = this.movingWins[totalWins - 1].getWindow()
+                frontWindow.style.zIndex = totalWins - 1;
+                frontWindow.classList.add('frontstage');
 
+                for (let i = totalWins - 2; i >= 0; i--) {
+                    const win = this.movingWins[i];
+                    win.getWindow().style.zIndex = i;
+                    win.getWindow().classList.remove('frontstage');
+                }
+
+            }            
         }
+
+
     }
 
     moveWindowToTop(window) {
@@ -343,15 +376,15 @@ export class DesktopDisplay {
     openApp(name) {
         switch (name) {
             case 'console':
-                this.openWindow(createHTMLElement('iframe', {src: 'https://www.aghnu.me/', title: "Aghnu's Console"}));
+                this.openWindow(createHTMLElement('iframe', {src: 'http://192.168.125.128:8081/', title: "Aghnu's Console"}), {sizeMaxX: 1000});
                 break;
             default:
                 break;
         }
     }
 
-    openWindow(contentElement=null) {
-        const newWindow = new MovingWindow(this, contentElement);
+    openWindow(contentElement=null, options={}) {
+        const newWindow = new MovingWindow(this, contentElement, options);
         this.movingWins.push(newWindow);
         this.desktopElementWindowsContainer.appendChild(newWindow.getWindow());
         this.refreshWindowOrder();
