@@ -207,9 +207,7 @@ export class MovingWindow {
 
 
         
-        this.windowState.window.posX = newPosX;
-        this.windowState.window.posY = newPosY;
-
+        this.#updateStateWindowPosition(newPosX, newPosY);
         this.#updateWindow();
 
     }
