@@ -10,7 +10,6 @@ export class MovingWindow {
             window: {
                 posX: 0,
                 posY: 0,
-                posXR: 0,
                 sizeX: 0,
                 sizeY: 0,
                 sizeMinX: 320,
@@ -45,14 +44,13 @@ export class MovingWindow {
         const initPosX = (areaSize[0] - initSizeX) / 2;
         const initPosY = (areaSize[1] - initSizeY) / 2;
 
-        this.windowState.window.posX = initPosX / areaSize[0];
-        this.windowState.window.posY = initPosY / areaSize[1];
+        this.windowState.window.posX = initPosX;
+        this.windowState.window.posY = initPosY;
         this.windowState.window.sizeX = initSizeX;
         this.windowState.window.sizeY = initSizeY;
     }
 
     #constructWindow() {
-        // export function createHTMLElement(type, attributes={}, children=[], options={innerText: "", eventListeners: []}) {
         const el = 
             createHTMLElement('div', {class: 'window'}, [
                 createHTMLElement('div', {class: 'panel-content'}, [
@@ -75,17 +73,12 @@ export class MovingWindow {
     #updateStateWindowSize(x, y) {
         this.windowState.window.sizeX = Math.max(x, this.windowState.window.sizeMinX);
         this.windowState.window.sizeY = Math.max(y, this.windowState.window.sizeMinY);
-
-        // update position due to size change
-        this.#updateStateWindowPosition();
     }
 
-    #updateStateWindowPosition(x=null, y=null) {
+    #updateStateWindowPosition(x, y) {
 
-        // if x or y not given, calculate its value based on current percentage
+        // // if x or y not given, calculate its value based on current percentage
         const size = this.desktopDisplayManager.getDesktopAreaSize();
-        const posXNew = (x !== null) ? x : this.windowState.window.posX * size[0];
-        const posYNew = (y !== null) ? y : this.windowState.window.posY * size[1];
         
         const maxX = size[0] - this.windowState.window.borderOverEdge;
         const maxY = size[1] - this.windowState.window.borderOverEdge;
@@ -93,28 +86,17 @@ export class MovingWindow {
         const minX = 0 - (this.windowState.window.sizeX - this.windowState.window.borderOverEdge);
         const minY = 0;
 
-        this.windowState.window.posXR = (Math.min(Math.max(posXNew, minX), maxX) + this.windowState.window.sizeX) / size[0];
-        this.windowState.window.posX = Math.min(Math.max(posXNew, minX), maxX) / size[0];
-        this.windowState.window.posY = Math.min(Math.max(posYNew, minY), maxY) / size[1];
+        this.windowState.window.posX = Math.min(Math.max(x, minX), maxX);
+        this.windowState.window.posY = Math.min(Math.max(y, minY), maxY);
 
-        // this.windowState.window.posX = Math.min(Math.max(x, 0), maxX);
-        // this.windowState.window.posY = Math.min(Math.max(y, 0), maxY);
     }
 
     #updateWindow() {
-        // position
-        
-        this.windowElement.style.top = `${this.windowState.window.posY * 100}%`;   
-        if (this.windowState.window.posX < 0) {
-            this.windowElement.style.left = 'unset';
-            this.windowElement.style.right = `${(1 - this.windowState.window.posXR) * 100}%`;
-        } else {
-            this.windowElement.style.right = 'unset';
-            this.windowElement.style.left = `${this.windowState.window.posX * 100}%`;
-        }
 
-        
-        
+        // position
+        this.windowElement.style.left = `${this.windowState.window.posX}px`;  
+        this.windowElement.style.top = `${this.windowState.window.posY}px`;   
+         
 
         // size
         this.windowElement.style.width = `${this.windowState.window.sizeX}px`;
@@ -138,8 +120,8 @@ export class MovingWindow {
             if (windowMouseDown) {
                 const desktopAreaSize = this.desktopDisplayManager.getDesktopAreaSize();
 
-                const posX = (windowStateSnapshot.window.posX * desktopAreaSize[0] + this.windowState.mouse.posX - windowStateSnapshot.mouse.posX);
-                const posY = (windowStateSnapshot.window.posY * desktopAreaSize[1] + this.windowState.mouse.posY - windowStateSnapshot.mouse.posY);
+                const posX = (windowStateSnapshot.window.posX + this.windowState.mouse.posX - windowStateSnapshot.mouse.posX);
+                const posY = (windowStateSnapshot.window.posY + this.windowState.mouse.posY - windowStateSnapshot.mouse.posY);
                 this.#updateStateWindowPosition(posX, posY);
                 this.#updateWindow();
             }            
@@ -211,6 +193,27 @@ export class MovingWindow {
         return this.windowElement;
     }
 
+    desktopSizeChange(oldSize) {
+        const newSize = this.desktopDisplayManager.getDesktopAreaSize();
+
+        const newPosX = (this.windowState.window.posX >= 0) ? this.windowState.window.posX / oldSize[0] * newSize[0] : (()=>{
+            // special case left is out of desktop's left edge
+            // make the change reverse
+            const posXDiff = this.windowState.window.posX / oldSize[0] * newSize[0] - this.windowState.window.posX;
+            return this.windowState.window.posX - posXDiff;
+        })();
+        const newPosY = this.windowState.window.posY / oldSize[1] * newSize[1];
+    
+
+
+        
+        this.windowState.window.posX = newPosX;
+        this.windowState.window.posY = newPosY;
+
+        this.#updateWindow();
+
+    }
+
     loadContent(content) {
         
         const contentContainer = this.windowElement.querySelector('.panel-content .content')
@@ -235,6 +238,29 @@ export class DesktopDisplay {
         this.parentContainer.appendChild(this.desktopElement);
         this.#initClock();
         this.#initActionApps();
+
+        // state
+        this.desktopSizeX = this.desktopElementWindowsContainer.offsetWidth;        // initial value
+        this.desktopSizeY = this.desktopElementWindowsContainer.offsetHeight;
+
+        // init listeners
+        this.#initListners();
+
+    }
+
+    #initListners() {
+        window.addEventListener('resize', () => {
+            const oldDesktopSizeX = this.desktopSizeX;
+            const oldDesktopSizeY = this.desktopSizeY;
+            this.desktopSizeX = this.desktopElementWindowsContainer.offsetWidth;
+            this.desktopSizeY = this.desktopElementWindowsContainer.offsetHeight;
+
+            for (let i = 0; i < this.movingWins.length; i++) {
+                new Promise(()=>{
+                    this.movingWins[i].desktopSizeChange([oldDesktopSizeX, oldDesktopSizeY]);
+                });
+            }
+        });
     }
 
     #initClock() {
