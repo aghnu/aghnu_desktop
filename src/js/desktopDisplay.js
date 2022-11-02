@@ -33,7 +33,7 @@ export class MovingWindow {
 
     #initPosition() {
         
-        const areaSize = this.desktopDisplayManager.getDesktopAreaSize(true);
+        const areaSize = this.desktopDisplayManager.getDesktopAreaSize();
         
         const SIZE_PERC_Y = 0.95;
         const SIZE_PERC_X = 0.95;
@@ -133,8 +133,6 @@ export class MovingWindow {
             this.windowState.mouse.posY = y;
 
             if (windowMouseDown) {
-                const desktopAreaSize = this.desktopDisplayManager.getDesktopAreaSize();
-
                 const posX = (windowStateSnapshot.window.posX + this.windowState.mouse.posX - windowStateSnapshot.mouse.posX);
                 const posY = (windowStateSnapshot.window.posY + this.windowState.mouse.posY - windowStateSnapshot.mouse.posY);
                 this.#updateStateWindowPosition(posX, posY);
@@ -241,15 +239,15 @@ export class DesktopDisplay {
         this.parentContainer = parentContainer;
         
         this.desktopElement = this.#contructDesktop();
-        this.desktopElementWindowsContainer = this.desktopElement.querySelector('.container .windows');
-        this.desktopElementActionsBar = this.desktopElement.querySelector('.container .actions');
+        this.desktopElementWindowsContainer = this.desktopElement.querySelector('.windows');
+        this.desktopElementActionsBar = this.desktopElement.querySelector('.actions');
         this.movingWins = [];
 
         this.clockInterval = null;
 
         // init
         this.parentContainer.appendChild(this.desktopElement);
-        this.#initClock();
+        // this.#initClock();
         this.#initActionApps();
 
         // state
@@ -275,47 +273,40 @@ export class DesktopDisplay {
             }
         });
 
-        const lostFocus = () => {
-            
-        }
-
         this.desktopElement.addEventListener('mousedown', () => {this.refreshWindowOrder(true)});
         this.desktopElement.addEventListener('touchstart', () => {this.refreshWindowOrder(true)});
 
     }
 
-    #initClock() {
-        const toolbar = this.desktopElement.querySelector('.toolbar');
-        const clock = createHTMLElement('p', {class: 'clock'});
+    // #initClock() {
+    //     const toolbar = this.desktopElement.querySelector('.toolbar');
+    //     const clock = createHTMLElement('p', {class: 'clock'});
 
-        const updateClock = () => {
-            const date = new Date();
-            // clock.innerHTML = date.toLocaleDateString('en-CA', {year: 'numeric', month: 'long', day: 'numeric'}) + "&nbsp&nbsp&nbsp" + date.toLocaleTimeString('en-CA');
+    //     const updateClock = () => {
+    //         const date = new Date();
+    //         // clock.innerHTML = date.toLocaleDateString('en-CA', {year: 'numeric', month: 'long', day: 'numeric'}) + "&nbsp&nbsp&nbsp" + date.toLocaleTimeString('en-CA');
 
-            clock.innerHTML = date.toLocaleTimeString('en-CA');
-        }
+    //         clock.innerHTML = date.toLocaleTimeString('en-CA');
+    //     }
 
-        updateClock();
-        this.clockInterval = setInterval(() => {
-            updateClock();
-        }, 1000);
+    //     updateClock();
+    //     this.clockInterval = setInterval(() => {
+    //         updateClock();
+    //     }, 1000);
         
-        toolbar.appendChild(clock);
-    }
+    //     toolbar.appendChild(clock);
+    // }
 
     #contructDesktop() {
         const el = 
             createHTMLElement('div', {class: 'desktop'}, [
-                createHTMLElement('div', {class: 'toolbar'}),
-                createHTMLElement('div', {class: 'container'}, [
-                    createHTMLElement('div', {class: 'background'}),
-                    createHTMLElement('div', {class: 'windows'}),
-                    createHTMLElement('div', {class: 'actions'}, [
-                        createHTMLElement('div', {class: 'button terminal'}, [createSVGIcon('terminal')]),
-
-                    ]),
+                createHTMLElement('div', {class: 'windows'}),
+                createHTMLElement('div', {class: 'actions'}, [
+                    createHTMLElement('div', {class: 'button apps'}, [createSVGIcon('apps')]),
+                    createHTMLElement('div', {class: 'button terminal'}, [createSVGIcon('terminal')]),
+                    createHTMLElement('div', {class: 'button reader'}, [createSVGIcon('reader')]),
+                    createHTMLElement('div', {class: 'button github'}, [createSVGIcon('github')]),
                 ]),
-                
             ]);
         return el;
     }
@@ -376,7 +367,8 @@ export class DesktopDisplay {
     openApp(name) {
         switch (name) {
             case 'console':
-                this.openWindow(createHTMLElement('iframe', {src: 'http://192.168.125.128:8081/', title: "Aghnu's Console"}), {sizeMaxX: 1000});
+                this.openWindow(createHTMLElement('iframe', {src: 'https://www.aghnu.me', title: "Aghnu's Console"}), {sizeMaxX: 1000});
+                // this.openWindow();
                 break;
             default:
                 break;
@@ -391,24 +383,11 @@ export class DesktopDisplay {
         return newWindow;
     }
 
-    getDesktopAreaSize(contentArea=false) {
+    getDesktopAreaSize() {
         const windowsAreaSizeX = this.desktopElementWindowsContainer.offsetWidth;
         const windowsAreaSizeY = this.desktopElementWindowsContainer.offsetHeight;
 
-        if (contentArea) {
-            const actionBarHeight = this.desktopElementActionsBar.offsetHeight;
-            const actionBarTop = this.desktopElementActionsBar.offsetTop;
-    
-            const padding = windowsAreaSizeY - actionBarTop - actionBarHeight;
-            
-            const areaContentX = windowsAreaSizeX;
-            const areaContentY = windowsAreaSizeY - actionBarHeight - padding * 1.5;    
-
-            return [areaContentX, areaContentY];        
-        } else {
-
-            return [windowsAreaSizeX, windowsAreaSizeY];
-        }
+        return [windowsAreaSizeX, windowsAreaSizeY];
     }
 }
 

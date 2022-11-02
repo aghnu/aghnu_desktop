@@ -1,112 +1,75 @@
 
 .desktop {
-    position: absolute;
+    position: relative;
     height: 100%;
     width: 100%;
     overflow: hidden;
+
+    box-sizing: border-box;
+    padding: 0.95rem 0.95rem 0.55rem 0.95rem;
+
+    background-color: #222222;
     
     font-family: $desktop-font;
     display: flex;
     flex-direction: column;
+    align-items: center;
 
-    .toolbar {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 2rem;
+    .windows {
+        position: relative;
+        height: 100%;
         width: 100%;
+        overflow: hidden;
+
+        border-radius: 0.55rem;
+        box-shadow: 0 0 0.55rem rgba(0, 0, 0, 0.35);
+
+        box-sizing: border-box;
+        background-image: linear-gradient(to left top, #d16ba5, #c777b9, #ba83ca, #aa8fd8, #9a9ae1, #84a7ef, #68b5f7, #49c1fb, #00d3fc, #00e3f1, #00f0db, #5ffbbe);
+    }
+
+    .actions {
+        position: relative;
+        height: 3.75rem;
+        width: 100%;
+
+
+        margin-top: 0.55rem;
+
         display: flex;
         justify-content: center;
         align-items: center;
-        overflow: hidden;
 
-        .clock {
-            white-space: nowrap;
 
-        }
-    }
-    .container {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        height: calc(100% - 2rem);
-        width: 100%;
-        overflow: hidden;
-        .background {
-            position: absolute;
-            top: 0;
-            left: 0;
+        gap: 1.25rem;
 
-            z-index: 1;
-            height: 100%;
-            width: 100%;
-            box-shadow: 0 0 0.75rem rgba(0, 0, 0, 0.35);
-            border-radius: 1rem 1rem 0 0;
-            background-image: linear-gradient(to left top, #d16ba5, #c777b9, #ba83ca, #aa8fd8, #9a9ae1, #84a7ef, #68b5f7, #49c1fb, #00d3fc, #00e3f1, #00f0db, #5ffbbe);
-            overflow: hidden;
-        }
-
-        .windows {
-            position: absolute;
-            top: 0;
-            left: 0;
-
-            z-index: 2;
-            height: 100%;
-            width: 100%;
-            overflow: hidden;
-        }
-
-        .actions {
-            position: absolute;
-
-            z-index: 3;
-
-            bottom: 1.25rem;
-            left: 50%;
-
-            transform: translate(-50%);
-
-            height: 5rem;
-            width: fit-content;
-            border-radius: 1.5rem;
-            box-shadow: 0 0 0.75rem rgba(0, 0, 0, 0.35);
-
-            background-color: #222222;
+        .button {
+            width: 3em;
+            height: 3em;
+            border-radius: 100%;
+            transition: font-size 0.25s;
 
             display: flex;
             justify-content: center;
             align-items: center;
 
-            padding: 0 1.15rem 0 1.15rem;
-            gap: 1.5rem;
-            overflow: hidden;
-
-            .button {
-                width: 3.5em;
-                height: 3.5em;
-                border-radius: 100%;
-                transition: font-size 0.25s;
-                // background-color: rgb(82, 82, 82);
-
-                .icon {
-                    padding: 0.25em;
-                    transition: padding 0.25s;
-                    cursor: pointer;
-                }
-
-                &:hover {
-                    .icon {
-                        padding: 0;
-                    }
-                }
-
-                &.pressed {
-                    font-size: 0.8em;
-                }
-
-
+            .icon {
+                padding: 0.15em;
+                transition: padding 0.25s;
+                cursor: pointer;
             }
+
+            &:hover {
+                .icon {
+                    padding: 0;
+                }
+            }
+
+            &.pressed {
+                font-size: 0.8em;
+            }
+
+
         }
     }
 }
