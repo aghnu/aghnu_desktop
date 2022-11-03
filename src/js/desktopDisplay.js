@@ -556,7 +556,7 @@ export class DesktopDisplay {
     openApp(name) {
         switch (name) {
             case 'console':
-                this.openWindow('console', createHTMLElement('iframe', {src: 'http://192.168.125.128:8080?options=desktop', title: "Aghnu's Console"}), {sizeInitRatioXY: 4/3});
+                this.openWindow('console', createHTMLElement('iframe', {src: 'https://www.aghnu.me?options=desktop', title: "Aghnu's Console"}), {sizeInitRatioXY: 4/3});
                 // this.openWindow();
                 break;
             default:
