@@ -177,6 +177,7 @@ export class MovingWindow {
         
         document.addEventListener('mouseup', pointerUpFunc);
         document.addEventListener('touchend', pointerUpFunc);
+        document.addEventListener('blur', pointerUpFunc);
     }
 
 
@@ -329,6 +330,7 @@ export class MovingWindow {
 
         document.addEventListener('mouseup', pointerUpFunc);
         document.addEventListener('touchend', pointerUpFunc);
+        document.addEventListener('blur', pointerUpFunc);
 
     }
 
