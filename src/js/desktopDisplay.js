@@ -138,12 +138,18 @@ export class MovingWindow {
 
         // re position
         const pointerMoveFunc = (x, y) => {
-            this.windowState.mouse.posX = x;
-            this.windowState.mouse.posY = y;
+            const desktopAreaPosition = this.desktopDisplayManager.getDesktopAreaPosition();
+            const desktopAreaSize = this.desktopDisplayManager.getDesktopAreaSize();
+
+            const mousePosX = Math.min(Math.max(x, desktopAreaPosition[0]), desktopAreaPosition[0] + desktopAreaSize[0]);
+            const mousePosY = Math.min(Math.max(y, desktopAreaPosition[1]), desktopAreaPosition[1] + desktopAreaSize[1]);
+
+            this.windowState.mouse.posX = mousePosX;
+            this.windowState.mouse.posY = mousePosY;
 
             if (windowMouseDown) {
-                const posX = (windowStateSnapshot.window.posX + this.windowState.mouse.posX - windowStateSnapshot.mouse.posX);
-                const posY = (windowStateSnapshot.window.posY + this.windowState.mouse.posY - windowStateSnapshot.mouse.posY);
+                const posX = windowStateSnapshot.window.posX + this.windowState.mouse.posX - windowStateSnapshot.mouse.posX;
+                const posY = windowStateSnapshot.window.posY + this.windowState.mouse.posY - windowStateSnapshot.mouse.posY;
                 this.#updateStateWindowPosition([posX, posY]);
                 this.#updateWindow();
             }            
@@ -402,25 +408,6 @@ export class DesktopDisplay {
 
     }
 
-    // #initClock() {
-    //     const toolbar = this.desktopElement.querySelector('.toolbar');
-    //     const clock = createHTMLElement('p', {class: 'clock'});
-
-    //     const updateClock = () => {
-    //         const date = new Date();
-    //         // clock.innerHTML = date.toLocaleDateString('en-CA', {year: 'numeric', month: 'long', day: 'numeric'}) + "&nbsp&nbsp&nbsp" + date.toLocaleTimeString('en-CA');
-
-    //         clock.innerHTML = date.toLocaleTimeString('en-CA');
-    //     }
-
-    //     updateClock();
-    //     this.clockInterval = setInterval(() => {
-    //         updateClock();
-    //     }, 1000);
-        
-    //     toolbar.appendChild(clock);
-    // }
-
     #contructDesktop() {
         const el = 
             createHTMLElement('div', {class: 'desktop'}, [
@@ -512,6 +499,11 @@ export class DesktopDisplay {
         const windowsAreaSizeY = this.desktopElementWindowsContainer.offsetHeight;
 
         return [windowsAreaSizeX, windowsAreaSizeY];
+    }
+
+    getDesktopAreaPosition() {
+        const rect = this.desktopElementWindowsContainer.getBoundingClientRect();
+        return [rect.left, rect.top];
     }
 }
 
