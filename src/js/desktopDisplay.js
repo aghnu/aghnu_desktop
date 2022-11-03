@@ -16,6 +16,9 @@ export class MovingWindow {
                 sizeMinY: 450,
                 sizeMaxX: options?.sizeMaxX,
                 sizeMaxY: options?.sizeMaxY,
+                sizeInitPercX: (options?.sizeInitPercX) ? options.sizeInitPercX : 0.95,
+                sizeInitPercY: (options?.sizeInitPercY) ? options.sizeInitPercY : 0.95,
+                sizeInitRatioXY: (options?.sizeInitRatioXY) ? options.sizeInitRatioXY: 4/3,
                 borderOverEdge: 50,         // 50px
             },
 
@@ -35,17 +38,13 @@ export class MovingWindow {
         
         const areaSize = this.desktopDisplayManager.getDesktopAreaSize();
         
-        const SIZE_PERC_Y = 0.95;
-        const SIZE_PERC_X = 0.95;
-        const SIZE_RATIO_XY = 4/3;
-        
-        const initSizeY = SIZE_PERC_Y * areaSize[1];
-        const initSizeX = Math.min(SIZE_PERC_X * areaSize[0], SIZE_RATIO_XY * initSizeY);
-        this.#updateStateWindowSize(initSizeX, initSizeY);
+        const initSizeY = this.windowState.window.sizeInitPercY * areaSize[1];
+        const initSizeX = Math.min(this.windowState.window.sizeInitPercX * areaSize[0], this.windowState.window.sizeInitRatioXY * initSizeY);
+        this.#updateStateWindowSize([initSizeX, initSizeY]);
 
         const initPosX = (areaSize[0] - this.windowState.window.sizeX) / 2;
         const initPosY = (areaSize[1] - this.windowState.window.sizeY) / 2;
-        this.#updateStateWindowPosition(initPosX, initPosY);
+        this.#updateStateWindowPosition([initPosX, initPosY]);
         
 
         // this.windowState.window.posX = initPosX;
@@ -70,29 +69,37 @@ export class MovingWindow {
                         (this.contentElement !== null) ? this.contentElement : null
                     ])
                 ]),
-                createHTMLElement('div', {class: 'panel-resize se'})
+                createHTMLElement('div', {class: 'panel-resize se'}),
+                createHTMLElement('div', {class: 'panel-resize sw'}),
+                createHTMLElement('div', {class: 'panel-resize ne'}),
+                createHTMLElement('div', {class: 'panel-resize nw'}),
+
+                createHTMLElement('div', {class: 'panel-resize n'}),
+                createHTMLElement('div', {class: 'panel-resize w'}),
+                createHTMLElement('div', {class: 'panel-resize s'}),
+                createHTMLElement('div', {class: 'panel-resize e'}),
             ]);
 
         return el;
     }
 
-    #updateStateWindowSize(x, y) {
-
-
-        this.windowState.window.sizeX = (this.windowState.window.sizeMaxX) 
+    #updateStateWindowSize([x, y]) {
+        const newSizeX = (this.windowState.window.sizeMaxX) 
             ? Math.min(Math.max(x, this.windowState.window.sizeMinX), this.windowState.window.sizeMaxX)
             : Math.max(x, this.windowState.window.sizeMinX);
 
-
-        this.windowState.window.sizeY = (this.windowState.window.sizeMaxY) 
+        const newSizeY = (this.windowState.window.sizeMaxY) 
             ? Math.min(Math.max(y, this.windowState.window.sizeMinY), this.windowState.window.sizeMaxY)
             : Math.max(y, this.windowState.window.sizeMinY);
 
+        this.windowState.window.sizeX = newSizeX;
+        this.windowState.window.sizeY = newSizeY;
+
+        return [newSizeX !== x, newSizeY !== y];
     }
 
-    #updateStateWindowPosition(x, y) {
-
-        // // if x or y not given, calculate its value based on current percentage
+    #updateStateWindowPosition([x, y]) {
+        // if x or y not given, calculate its value based on current percentage
         const size = this.desktopDisplayManager.getDesktopAreaSize();
         
         const maxX = size[0] - this.windowState.window.borderOverEdge;
@@ -101,17 +108,19 @@ export class MovingWindow {
         const minX = 0 - (this.windowState.window.sizeX - this.windowState.window.borderOverEdge);
         const minY = 0;
 
-        this.windowState.window.posX = Math.min(Math.max(x, minX), maxX);
-        this.windowState.window.posY = Math.min(Math.max(y, minY), maxY);
+        const newPosX = Math.min(Math.max(x, minX), maxX);
+        const newPosY = Math.min(Math.max(y, minY), maxY);
 
+        this.windowState.window.posX = newPosX;
+        this.windowState.window.posY = newPosY;
+
+        return [newPosX !== x, newPosY !== y];
     }
 
     #updateWindow() {
-
         // position
         this.windowElement.style.left = `${this.windowState.window.posX}px`;  
         this.windowElement.style.top = `${this.windowState.window.posY}px`;   
-         
 
         // size
         this.windowElement.style.width = `${this.windowState.window.sizeX}px`;
@@ -135,7 +144,7 @@ export class MovingWindow {
             if (windowMouseDown) {
                 const posX = (windowStateSnapshot.window.posX + this.windowState.mouse.posX - windowStateSnapshot.mouse.posX);
                 const posY = (windowStateSnapshot.window.posY + this.windowState.mouse.posY - windowStateSnapshot.mouse.posY);
-                this.#updateStateWindowPosition(posX, posY);
+                this.#updateStateWindowPosition([posX, posY]);
                 this.#updateWindow();
             }            
         }
@@ -164,21 +173,127 @@ export class MovingWindow {
         document.addEventListener('touchend', pointerUpFunc);
     }
 
+
+    #resizePanelToDirection(direction, snapshot) {
+
+        const windowStateSnapshot = JSON.parse(JSON.stringify(this.windowState));
+        let positionChangeBoolean = null;
+        let sizeChangeBoolean = null;
+
+        switch(direction) {
+            case 'n':
+
+                positionChangeBoolean = this.#updateStateWindowPosition([
+                    this.windowState.window.posX,
+                    snapshot.window.posY + this.windowState.mouse.posY - snapshot.mouse.posY
+                ]);
+                sizeChangeBoolean = this.#updateStateWindowSize([
+                    this.windowState.window.sizeX,
+                    snapshot.window.sizeY - (this.windowState.mouse.posY - snapshot.mouse.posY)
+                ]);
+
+                if (positionChangeBoolean[1] || sizeChangeBoolean[1]) {
+                    // revert back
+                    this.windowState = windowStateSnapshot;
+                }
+
+                break;
+            case 'w':
+                positionChangeBoolean = this.#updateStateWindowPosition([
+                    snapshot.window.posX + this.windowState.mouse.posX - snapshot.mouse.posX,
+                    this.windowState.window.posY
+                ])
+
+                sizeChangeBoolean = this.#updateStateWindowSize([
+                    snapshot.window.sizeX - (this.windowState.mouse.posX - snapshot.mouse.posX), 
+                    this.windowState.window.sizeY
+                ]);
+
+                if (positionChangeBoolean[0] || sizeChangeBoolean[0]) {
+                    // revert back
+                    this.windowState = windowStateSnapshot;
+                }
+
+                break;
+            case 's':
+                // south edge
+                this.#updateStateWindowSize([
+                    this.windowState.window.sizeX, 
+                    snapshot.window.sizeY + this.windowState.mouse.posY - snapshot.mouse.posY
+                ]);
+
+                break;
+            case 'e':
+                // east edge
+                this.#updateStateWindowSize([
+                    snapshot.window.sizeX + this.windowState.mouse.posX - snapshot.mouse.posX,
+                    this.windowState.window.sizeY
+                ]);
+
+                break;
+        }
+    }
+
+
     #initResizePanel() {
-        const resizeButton = this.windowElement.querySelector('.panel-resize.se');
+        // get elements
+        const resizePanelSE = this.windowElement.querySelector('.panel-resize.se');
+        const resizePanelSW = this.windowElement.querySelector('.panel-resize.sw');
+        const resizePanelNE = this.windowElement.querySelector('.panel-resize.ne');
+        const resizePanelNW = this.windowElement.querySelector('.panel-resize.nw');
+
+        const resizePanelN = this.windowElement.querySelector('.panel-resize.n');
+        const resizePanelW = this.windowElement.querySelector('.panel-resize.w');
+        const resizePanelS = this.windowElement.querySelector('.panel-resize.s');
+        const resizePanelE = this.windowElement.querySelector('.panel-resize.e');
+
+        // set action functions
+        resizePanelSE.customPointerMoveFunc = () => {
+            this.#resizePanelToDirection('e', windowStateSnapshot);
+            this.#resizePanelToDirection('s', windowStateSnapshot);
+        }
+        resizePanelSW.customPointerMoveFunc = () => {
+            this.#resizePanelToDirection('s', windowStateSnapshot);
+            this.#resizePanelToDirection('w', windowStateSnapshot);
+        }
+        resizePanelNE.customPointerMoveFunc = () => {
+            this.#resizePanelToDirection('n', windowStateSnapshot);
+            this.#resizePanelToDirection('e', windowStateSnapshot);
+        }
+        resizePanelNW.customPointerMoveFunc = () => {
+            this.#resizePanelToDirection('n', windowStateSnapshot);
+            this.#resizePanelToDirection('w', windowStateSnapshot);
+        }
+
+        resizePanelN.customPointerMoveFunc = () => {
+            this.#resizePanelToDirection('n', windowStateSnapshot);
+        }
+        resizePanelW.customPointerMoveFunc = () => {
+            this.#resizePanelToDirection('w', windowStateSnapshot);
+        }
+        resizePanelS.customPointerMoveFunc = () => {
+            this.#resizePanelToDirection('s', windowStateSnapshot);
+        }
+        resizePanelE.customPointerMoveFunc = () => {
+            this.#resizePanelToDirection('e', windowStateSnapshot);
+        }
+
+        // local globals
         let windowMouseDown = false;
+        let target = null;
         let windowStateSnapshot = JSON.parse(JSON.stringify(this.windowState));
         
+        // pointer action functions
         const pointerMoveFunc = () => {
             if (windowMouseDown) {
-                const sizeX = windowStateSnapshot.window.sizeX + this.windowState.mouse.posX - windowStateSnapshot.mouse.posX;
-                const sizeY = windowStateSnapshot.window.sizeY + this.windowState.mouse.posY - windowStateSnapshot.mouse.posY
-                this.#updateStateWindowSize(sizeX, sizeY);
+
+                target.customPointerMoveFunc();
                 this.#updateWindow();
             }
         }
 
-        const pointerDownFunc = (x, y) => {
+        const pointerDownFunc = (x, y, targetElement) => {
+            target = targetElement;
             this.windowState.mouse.posX = x;
             this.windowState.mouse.posY = y;
             this.windowElement.classList.add('moving');
@@ -189,14 +304,28 @@ export class MovingWindow {
         const pointerUpFunc = () => {
             this.windowElement.classList.remove('moving');
             windowMouseDown = false;
+            target = null;
         }
 
+        // set up listener
+        const setDownListener = (element) => {
+            element.addEventListener('mousedown', (e) => {e.preventDefault(); pointerDownFunc(e.clientX, e.clientY, element)});
+            element.addEventListener('touchstart', (e) => {e.preventDefault(); pointerDownFunc(e.touches[0].clientX, e.touches[0].clientY, element)});            
+        }
+
+        setDownListener(resizePanelSE);
+        setDownListener(resizePanelSW);
+        setDownListener(resizePanelNE);
+        setDownListener(resizePanelNW);
+
+        setDownListener(resizePanelN);
+        setDownListener(resizePanelW);
+        setDownListener(resizePanelS);
+        setDownListener(resizePanelE);
+        
         document.addEventListener(('mousemove'), pointerMoveFunc);
         document.addEventListener(('touchmove'), pointerMoveFunc);
 
-        resizeButton.addEventListener('mousedown', (e) => {e.preventDefault(); pointerDownFunc(e.clientX, e.clientY)});
-        resizeButton.addEventListener('touchstart', (e) => {e.preventDefault(); pointerDownFunc(e.touches[0].clientX, e.touches[0].clientY)});
-        
         document.addEventListener('mouseup', pointerUpFunc);
         document.addEventListener('touchend', pointerUpFunc);
 
@@ -220,7 +349,7 @@ export class MovingWindow {
 
 
         
-        this.#updateStateWindowPosition(newPosX, newPosY);
+        this.#updateStateWindowPosition([newPosX, newPosY]);
         this.#updateWindow();
 
     }
@@ -367,7 +496,7 @@ export class DesktopDisplay {
     openApp(name) {
         switch (name) {
             case 'console':
-                this.openWindow(createHTMLElement('iframe', {src: 'https://www.aghnu.me', title: "Aghnu's Console"}), {sizeMaxX: 1000});
+                this.openWindow(createHTMLElement('iframe', {src: 'http://192.168.125.128:8080?options=desktop', title: "Aghnu's Console"}), {sizeInitRatioXY: 4/3});
                 // this.openWindow();
                 break;
             default:
