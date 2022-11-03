@@ -30,9 +30,8 @@
 
     .actions {
         position: relative;
-        height: 3.75rem;
+        height: 3.25rem;
         width: 100%;
-
 
         margin-top: 0.55rem;
 
@@ -41,11 +40,11 @@
         align-items: center;
 
 
-        gap: 1.25rem;
+        gap: 1rem;
 
         .button {
-            width: 3em;
-            height: 3em;
+            width: 2.5em;
+            height: 2.5em;
             border-radius: 100%;
             transition: font-size 0.25s;
 
