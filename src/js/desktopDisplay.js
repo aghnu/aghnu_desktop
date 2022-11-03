@@ -95,7 +95,7 @@ export class MovingWindow {
         this.windowState.window.sizeX = newSizeX;
         this.windowState.window.sizeY = newSizeY;
 
-        return [newSizeX !== x, newSizeY !== y];
+        return [newSizeX, newSizeY];
     }
 
     #updateStateWindowPosition([x, y]) {
@@ -114,7 +114,7 @@ export class MovingWindow {
         this.windowState.window.posX = newPosX;
         this.windowState.window.posY = newPosY;
 
-        return [newPosX !== x, newPosY !== y];
+        return [newPosX, newPosY];
     }
 
     #updateWindow() {
@@ -175,45 +175,42 @@ export class MovingWindow {
 
 
     #resizePanelToDirection(direction, snapshot) {
-
-        const windowStateSnapshot = JSON.parse(JSON.stringify(this.windowState));
-        let positionChangeBoolean = null;
-        let sizeChangeBoolean = null;
-
         switch(direction) {
             case 'n':
+                {
+                    const windowStateSnapshot = JSON.parse(JSON.stringify(this.windowState));
 
-                positionChangeBoolean = this.#updateStateWindowPosition([
-                    this.windowState.window.posX,
-                    snapshot.window.posY + this.windowState.mouse.posY - snapshot.mouse.posY
-                ]);
-                sizeChangeBoolean = this.#updateStateWindowSize([
-                    this.windowState.window.sizeX,
-                    snapshot.window.sizeY - (this.windowState.mouse.posY - snapshot.mouse.posY)
-                ]);
+                    const newPosY = snapshot.window.posY + this.windowState.mouse.posY - snapshot.mouse.posY;
+                    const positionNew = this.#updateStateWindowPosition([this.windowState.window.posX,newPosY]);
 
-                if (positionChangeBoolean[1] || sizeChangeBoolean[1]) {
-                    // revert back
-                    this.windowState = windowStateSnapshot;
+                    const newSizeY = snapshot.window.sizeY - (positionNew[1] - snapshot.window.posY );
+                    const sizeNew = this.#updateStateWindowSize([this.windowState.window.sizeX,newSizeY]);
+
+                    if (sizeNew[1] !== newSizeY) {
+                        this.windowState = windowStateSnapshot;
+                        const newPosYCorrected = snapshot.window.posY + (snapshot.window.sizeY - sizeNew[1]);
+                        this.#updateStateWindowPosition([this.windowState.window.posX,newPosYCorrected]);
+                        this.#updateStateWindowSize([this.windowState.window.sizeX, sizeNew[1]]);
+                    }
                 }
-
                 break;
             case 'w':
-                positionChangeBoolean = this.#updateStateWindowPosition([
-                    snapshot.window.posX + this.windowState.mouse.posX - snapshot.mouse.posX,
-                    this.windowState.window.posY
-                ])
+                {
+                    const windowStateSnapshot = JSON.parse(JSON.stringify(this.windowState));
 
-                sizeChangeBoolean = this.#updateStateWindowSize([
-                    snapshot.window.sizeX - (this.windowState.mouse.posX - snapshot.mouse.posX), 
-                    this.windowState.window.sizeY
-                ]);
+                    const newPosX = snapshot.window.posX + this.windowState.mouse.posX - snapshot.mouse.posX;
+                    const positionNew = this.#updateStateWindowPosition([newPosX, this.windowState.window.posY]);
 
-                if (positionChangeBoolean[0] || sizeChangeBoolean[0]) {
-                    // revert back
-                    this.windowState = windowStateSnapshot;
+                    const newSizeX = snapshot.window.sizeX - (positionNew[0] - snapshot.window.posX );
+                    const sizeNew = this.#updateStateWindowSize([newSizeX,this.windowState.window.sizeY]);
+
+                    if (sizeNew[0] !== newSizeX) {
+                        this.windowState = windowStateSnapshot;
+                        const newPosXCorrected = snapshot.window.posX + (snapshot.window.sizeX - sizeNew[0]);
+                        this.#updateStateWindowPosition([newPosXCorrected,this.windowState.window.posY]);
+                        this.#updateStateWindowSize([sizeNew[0],this.windowState.window.sizeY]);
+                    }
                 }
-
                 break;
             case 's':
                 // south edge
@@ -221,7 +218,6 @@ export class MovingWindow {
                     this.windowState.window.sizeX, 
                     snapshot.window.sizeY + this.windowState.mouse.posY - snapshot.mouse.posY
                 ]);
-
                 break;
             case 'e':
                 // east edge
@@ -229,7 +225,6 @@ export class MovingWindow {
                     snapshot.window.sizeX + this.windowState.mouse.posX - snapshot.mouse.posX,
                     this.windowState.window.sizeY
                 ]);
-
                 break;
         }
     }
