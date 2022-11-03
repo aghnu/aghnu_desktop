@@ -2,10 +2,11 @@ import { createHTMLElement,addButtonBehavior } from "./utilities";
 import { createSVGIcon } from "./svgIcons";
 
 export class MovingWindow {
-    constructor(desktopDisplayManager, contentElement, options={}) {
+    constructor(desktopDisplayManager, type, contentElement, options={}) {
         this.contentElement = contentElement;
         this.windowElement = this.#constructWindow();
         this.desktopDisplayManager = desktopDisplayManager;
+        this.type = type;
         this.windowState = {
             window: {
                 posX: 0,
@@ -16,8 +17,8 @@ export class MovingWindow {
                 sizeMinY: 450,
                 sizeMaxX: options?.sizeMaxX,
                 sizeMaxY: options?.sizeMaxY,
-                sizeInitPercX: (options?.sizeInitPercX) ? options.sizeInitPercX : 0.95,
-                sizeInitPercY: (options?.sizeInitPercY) ? options.sizeInitPercY : 0.95,
+                sizeInitPercX: (options?.sizeInitPercX) ? options.sizeInitPercX : 0.75,
+                sizeInitPercY: (options?.sizeInitPercY) ? options.sizeInitPercY : 0.85,
                 sizeInitRatioXY: (options?.sizeInitRatioXY) ? options.sizeInitRatioXY: 4/3,
                 borderOverEdge: 50,         // 50px
             },
@@ -37,17 +38,83 @@ export class MovingWindow {
         this.actionTimeout = null;
     }
 
+    getType() {
+        return this.type;
+    }
+
+    checkWinInsideDesktopArea() {
+        const areaSize = this.desktopDisplayManager.getDesktopAreaSize();
+        if (
+            (this.windowState.window.posY < 0) || 
+            (this.windowState.window.posX < 0) ||
+            ((this.windowState.window.posY + this.windowState.window.sizeY) > areaSize[1]) ||
+            ((this.windowState.window.posX + this.windowState.window.sizeX) > areaSize[0])
+        ) {
+            
+            return false;
+        } else {
+            return true;
+        }
+    }
+
     #initPosition() {
-        
+
+        const topWindow = this.desktopDisplayManager.getTopWindow(this.type);
         const areaSize = this.desktopDisplayManager.getDesktopAreaSize();
         
-        const initSizeY = this.windowState.window.sizeInitPercY * areaSize[1];
-        const initSizeX = Math.min(this.windowState.window.sizeInitPercX * areaSize[0], this.windowState.window.sizeInitRatioXY * initSizeY);
-        this.#updateStateWindowSize([initSizeX, initSizeY]);
+        const generateInitSize = () => {
+            const initSizeY = this.windowState.window.sizeInitPercY * areaSize[1];
+            const initSizeX = Math.min(this.windowState.window.sizeInitPercX * areaSize[0], this.windowState.window.sizeInitRatioXY * initSizeY);        
+            
+            this.#updateStateWindowSize([initSizeX, initSizeY]);    
+        }
 
-        const initPosX = (areaSize[0] - this.windowState.window.sizeX) / 2;
-        const initPosY = (areaSize[1] - this.windowState.window.sizeY) / 2;
-        this.#updateStateWindowPosition([initPosX, initPosY]);
+        const generateInitPos = () => {
+            const initPosX = (areaSize[0] - this.windowState.window.sizeX) / 2;
+            const initPosY = (areaSize[1] - this.windowState.window.sizeY) / 2;
+            
+            this.#updateStateWindowPosition([initPosX, initPosY]);        
+        }
+        
+        if (topWindow) {
+
+            // calculate size and pos from top window
+            const initPosX = topWindow.windowState.window.posX + 20;
+            const initPosY = topWindow.windowState.window.posY + 20;
+            const initSizeX = topWindow.windowState.window.sizeX;
+            const initSizeY = topWindow.windowState.window.sizeY;
+
+            // set size and pos
+            this.#updateStateWindowSize([initSizeX, initSizeY]);  
+            this.#updateStateWindowPosition([initPosX, initPosY]);   
+            
+
+            // try if valid init position
+            if (this.checkWinInsideDesktopArea() === false) {
+                // not valid
+                // try to keep size and retry
+                generateInitPos();
+
+                // same position with old top window or size not valid
+                if (
+                    (topWindow.windowState.window.posX === this.windowState.window.posX) && (topWindow.windowState.window.posY === this.windowState.window.posY) ||
+                    (this.checkWinInsideDesktopArea() === false)
+                ) {
+                    generateInitSize();
+                    generateInitPos();
+                } 
+            }            
+
+        } else {
+            generateInitSize();
+            generateInitPos();
+        }
+        
+        
+        
+
+
+        
     }
 
     #constructWindow() {
@@ -489,7 +556,7 @@ export class DesktopDisplay {
     openApp(name) {
         switch (name) {
             case 'console':
-                this.openWindow(createHTMLElement('iframe', {src: 'http://192.168.125.128:8080?options=desktop', title: "Aghnu's Console"}), {sizeInitRatioXY: 4/3});
+                this.openWindow('console', createHTMLElement('iframe', {src: 'http://192.168.125.128:8080?options=desktop', title: "Aghnu's Console"}), {sizeInitRatioXY: 4/3});
                 // this.openWindow();
                 break;
             default:
@@ -497,8 +564,8 @@ export class DesktopDisplay {
         }
     }
 
-    openWindow(contentElement=null, options={}) {
-        const newWindow = new MovingWindow(this, contentElement, options);
+    openWindow(type, contentElement=null, options={}) {
+        const newWindow = new MovingWindow(this, type, contentElement, options);
         this.movingWins.push(newWindow);
         this.desktopElementWindowsContainer.appendChild(newWindow.getWindow());
         this.refreshWindowOrder();
@@ -516,6 +583,16 @@ export class DesktopDisplay {
     getDesktopAreaPosition() {
         const rect = this.desktopElementWindowsContainer.getBoundingClientRect();
         return [rect.left, rect.top];
+    }
+
+    getTopWindow(type='*') {
+        // return undefined if no window
+        if (type === '*') {
+            return this.movingWins[this.movingWins.length - 1];
+        } else {
+            const movingWinsSubset = this.movingWins.filter(win => (win.getType() === type));
+            return movingWinsSubset[this.movingWins.length - 1];
+        }   
     }
 }
 
