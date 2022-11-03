@@ -32,6 +32,9 @@ export class MovingWindow {
         this.#initListerner();
         this.#updateWindow();
         this.#initResizePanel();
+
+        // intervals
+        this.actionTimeout = null;
     }
 
     #initPosition() {
@@ -45,39 +48,36 @@ export class MovingWindow {
         const initPosX = (areaSize[0] - this.windowState.window.sizeX) / 2;
         const initPosY = (areaSize[1] - this.windowState.window.sizeY) / 2;
         this.#updateStateWindowPosition([initPosX, initPosY]);
-        
-
-        // this.windowState.window.posX = initPosX;
-        // this.windowState.window.posY = initPosY;
-        // this.windowState.window.sizeX = initSizeX;
-        // this.windowState.window.sizeY = initSizeY;
     }
 
     #constructWindow() {
         const el = 
             createHTMLElement('div', {class: 'window'}, [
-                createHTMLElement('div', {class: 'panel-content'}, [
+                createHTMLElement('div', {class: 'content-display'}, [
+                    createHTMLElement('div', {class: 'panel-content'}, [
                     
-                    createHTMLElement('div', {class: 'titlebar'}, [
-                        createHTMLElement('div', {class: 'movingbar'}),
-                        createHTMLElement('div', {class: 'control'}, [
-                            createHTMLElement('div', {class: 'button fullscreen'}),
-                            createHTMLElement('div', {class: 'button close'})
+                        createHTMLElement('div', {class: 'titlebar'}, [
+                            createHTMLElement('div', {class: 'movingbar'}),
+                            createHTMLElement('div', {class: 'control'}, [
+                                createHTMLElement('div', {class: 'button fullscreen'}),
+                                createHTMLElement('div', {class: 'button close'})
+                            ]),
                         ]),
+                        createHTMLElement('div', {class: 'content'}, [
+                            (this.contentElement !== null) ? this.contentElement : null
+                        ])
                     ]),
-                    createHTMLElement('div', {class: 'content'}, [
-                        (this.contentElement !== null) ? this.contentElement : null
-                    ])
+                    createHTMLElement('div', {class: 'panel-resize se'}),
+                    createHTMLElement('div', {class: 'panel-resize sw'}),
+                    createHTMLElement('div', {class: 'panel-resize ne'}),
+                    createHTMLElement('div', {class: 'panel-resize nw'}),
+    
+                    createHTMLElement('div', {class: 'panel-resize n'}),
+                    createHTMLElement('div', {class: 'panel-resize w'}),
+                    createHTMLElement('div', {class: 'panel-resize s'}),
+                    createHTMLElement('div', {class: 'panel-resize e'}),
                 ]),
-                createHTMLElement('div', {class: 'panel-resize se'}),
-                createHTMLElement('div', {class: 'panel-resize sw'}),
-                createHTMLElement('div', {class: 'panel-resize ne'}),
-                createHTMLElement('div', {class: 'panel-resize nw'}),
 
-                createHTMLElement('div', {class: 'panel-resize n'}),
-                createHTMLElement('div', {class: 'panel-resize w'}),
-                createHTMLElement('div', {class: 'panel-resize s'}),
-                createHTMLElement('div', {class: 'panel-resize e'}),
             ]);
 
         return el;
@@ -297,13 +297,13 @@ export class MovingWindow {
             target = targetElement;
             this.windowState.mouse.posX = x;
             this.windowState.mouse.posY = y;
-            this.windowElement.classList.add('moving');
+            this.windowElement.classList.add('resizing');
             windowStateSnapshot = JSON.parse(JSON.stringify(this.windowState));
             windowMouseDown = true;
         }
 
         const pointerUpFunc = () => {
-            this.windowElement.classList.remove('moving');
+            this.windowElement.classList.remove('resizing');
             windowMouseDown = false;
             target = null;
         }
@@ -361,6 +361,15 @@ export class MovingWindow {
         this.contentElement = content;
         contentContainer.innerHTML = '';
         contentContainer.appendChild(this.contentElement);
+    }
+
+    open() {
+        clearTimeout(this.actionTimeout);
+
+        this.actionTimeout = setTimeout(() => {
+            this.windowElement.classList.add('open');
+        }, 250);
+        
     }
 }
 
@@ -491,6 +500,7 @@ export class DesktopDisplay {
         this.movingWins.push(newWindow);
         this.desktopElementWindowsContainer.appendChild(newWindow.getWindow());
         this.refreshWindowOrder();
+        newWindow.open();
         return newWindow;
     }
 
