@@ -13,11 +13,11 @@ export class MovingWindow {
                 posY: 0,
                 sizeX: 0,
                 sizeY: 0,
-                sizeMinX: 350,
+                sizeMinX: 225,
                 sizeMinY: 450,
                 sizeMaxX: options?.sizeMaxX,
                 sizeMaxY: options?.sizeMaxY,
-                sizeInitPercX: (options?.sizeInitPercX) ? options.sizeInitPercX : 0.75,
+                sizeInitPercX: (options?.sizeInitPercX) ? options.sizeInitPercX : 0.90,
                 sizeInitPercY: (options?.sizeInitPercY) ? options.sizeInitPercY : 0.85,
                 sizeInitRatioXY: (options?.sizeInitRatioXY) ? options.sizeInitRatioXY: 4/3,
                 borderOverEdge: 50,         // 50px
@@ -28,33 +28,19 @@ export class MovingWindow {
                 posY: 0
             }
         }
+        // cleanup functions
+        this.cleanFunc = [];
 
         this.#initPosition();
         this.#initListerner();
         this.#updateWindow();
         this.#initResizePanel();
+        this.#initTitleBar();
 
         // intervals
         this.actionTimeout = null;
-    }
 
-    getType() {
-        return this.type;
-    }
 
-    checkWinInsideDesktopArea() {
-        const areaSize = this.desktopDisplayManager.getDesktopAreaSize();
-        if (
-            (this.windowState.window.posY < 0) || 
-            (this.windowState.window.posX < 0) ||
-            ((this.windowState.window.posY + this.windowState.window.sizeY) > areaSize[1]) ||
-            ((this.windowState.window.posX + this.windowState.window.sizeX) > areaSize[0])
-        ) {
-            
-            return false;
-        } else {
-            return true;
-        }
     }
 
     #initPosition() {
@@ -126,8 +112,8 @@ export class MovingWindow {
                         createHTMLElement('div', {class: 'titlebar'}, [
                             createHTMLElement('div', {class: 'movingbar'}),
                             createHTMLElement('div', {class: 'control'}, [
-                                createHTMLElement('div', {class: 'button fullscreen'}),
-                                createHTMLElement('div', {class: 'button close'})
+                                // createHTMLElement('div', {class: 'button fullscreen'}),
+                                // createHTMLElement('div', {class: 'button close'})
                             ]),
                         ]),
                         createHTMLElement('div', {class: 'content'}, [
@@ -194,15 +180,20 @@ export class MovingWindow {
         this.windowElement.style.height = `${this.windowState.window.sizeY}px`;
     }
 
+    #addEventListenerWithCleanUp(element, event, eventListner) {
+        element.addEventListener(event, eventListner);
+        this.addToCleanFunc(() => element.removeEventListener(event, eventListner));
+    }
+
     #initListerner() {
         const windowTitleBarElement = this.windowElement.querySelector('.titlebar .movingbar');
         let windowMouseDown = false;
         let windowStateSnapshot = JSON.parse(JSON.stringify(this.windowState));
 
         // on top
-        this.windowElement.addEventListener('mousedown', (e) => {e.cancelBubble = true;this.desktopDisplayManager.moveWindowToTop(this)});
-        this.windowElement.addEventListener('touchstart', (e) => {e.cancelBubble = true;this.desktopDisplayManager.moveWindowToTop(this)});
-
+        this.#addEventListenerWithCleanUp(this.windowElement, 'mousedown', (e) => {e.cancelBubble = true;this.desktopDisplayManager.moveWindowToTop(this)});
+        this.#addEventListenerWithCleanUp(this.windowElement, 'touchstart', (e) => {e.cancelBubble = true;this.desktopDisplayManager.moveWindowToTop(this)});
+        
         // re position
         const pointerMoveFunc = (x, y) => {
             const desktopAreaPosition = this.desktopDisplayManager.getDesktopAreaPosition();
@@ -222,9 +213,8 @@ export class MovingWindow {
             }            
         }
 
-        document.addEventListener('mousemove', (e) => {pointerMoveFunc(e.clientX, e.clientY)});
-        document.addEventListener('touchmove', (e) => {pointerMoveFunc(e.touches[0].clientX, e.touches[0].clientY)});
-
+        this.#addEventListenerWithCleanUp(document, 'mousemove', (e) => {pointerMoveFunc(e.clientX, e.clientY)});
+        this.#addEventListenerWithCleanUp(document, 'touchmove', (e) => {pointerMoveFunc(e.touches[0].clientX, e.touches[0].clientY)});
 
         const pointerDownFunc = (x, y) => {
             this.windowState.mouse.posX = x;
@@ -238,13 +228,17 @@ export class MovingWindow {
             this.windowElement.classList.remove('moving');
             windowMouseDown = false;
         }
+
+
         
-        windowTitleBarElement.addEventListener('mousedown', (e) => {e.preventDefault(); pointerDownFunc(e.clientX, e.clientY)});
-        windowTitleBarElement.addEventListener('touchstart', (e) => {e.preventDefault(); pointerDownFunc(e.touches[0].clientX, e.touches[0].clientY)});
+        this.#addEventListenerWithCleanUp(windowTitleBarElement, 'mousedown', (e) => {e.preventDefault(); pointerDownFunc(e.clientX, e.clientY)});
+        this.#addEventListenerWithCleanUp(windowTitleBarElement, 'touchstart', (e) => {e.preventDefault(); pointerDownFunc(e.touches[0].clientX, e.touches[0].clientY)});
         
-        document.addEventListener('mouseup', pointerUpFunc);
-        document.addEventListener('touchend', pointerUpFunc);
-        document.addEventListener('blur', pointerUpFunc);
+
+
+        this.#addEventListenerWithCleanUp(document, 'mouseup', pointerUpFunc);
+        this.#addEventListenerWithCleanUp(document, 'touchend', pointerUpFunc);
+        this.#addEventListenerWithCleanUp(document, 'blur', pointerUpFunc);
     }
 
 
@@ -347,6 +341,16 @@ export class MovingWindow {
             this.#resizePanelToDirection('e', windowStateSnapshot);
         }
 
+        resizePanelSE.customtype = 'se';
+        resizePanelSW.customtype = 'sw';
+        resizePanelNE.customtype = 'ne';
+        resizePanelNW.customtype = 'nw';
+
+        resizePanelN.customtype = 'n';
+        resizePanelW.customtype = 'w';
+        resizePanelS.customtype = 's';
+        resizePanelE.customtype = 'e';
+
         // local globals
         let windowMouseDown = false;
         let target = null;
@@ -366,20 +370,25 @@ export class MovingWindow {
             this.windowState.mouse.posX = x;
             this.windowState.mouse.posY = y;
             this.windowElement.classList.add('resizing');
+            this.windowElement.classList.add(target.customtype);
             windowStateSnapshot = JSON.parse(JSON.stringify(this.windowState));
             windowMouseDown = true;
         }
 
         const pointerUpFunc = () => {
-            this.windowElement.classList.remove('resizing');
-            windowMouseDown = false;
-            target = null;
+            if (windowMouseDown) {
+                this.windowElement.classList.remove('resizing');
+                this.windowElement.classList.remove(target.customtype);  
+                windowMouseDown = false;
+                target = null;              
+            }
+
         }
 
         // set up listener
         const setDownListener = (element) => {
-            element.addEventListener('mousedown', (e) => {e.preventDefault(); pointerDownFunc(e.clientX, e.clientY, element)});
-            element.addEventListener('touchstart', (e) => {e.preventDefault(); pointerDownFunc(e.touches[0].clientX, e.touches[0].clientY, element)});            
+            this.#addEventListenerWithCleanUp(element, 'mousedown', (e) => {e.preventDefault(); pointerDownFunc(e.clientX, e.clientY, element)});
+            this.#addEventListenerWithCleanUp(element, 'touchstart', (e) => {e.preventDefault(); pointerDownFunc(e.touches[0].clientX, e.touches[0].clientY, element)});            
         }
 
         setDownListener(resizePanelSE);
@@ -392,13 +401,49 @@ export class MovingWindow {
         setDownListener(resizePanelS);
         setDownListener(resizePanelE);
         
-        document.addEventListener(('mousemove'), pointerMoveFunc);
-        document.addEventListener(('touchmove'), pointerMoveFunc);
+        this.#addEventListenerWithCleanUp(document, 'mousemove', pointerMoveFunc);
+        this.#addEventListenerWithCleanUp(document, 'touchmove', pointerMoveFunc);
 
-        document.addEventListener('mouseup', pointerUpFunc);
-        document.addEventListener('touchend', pointerUpFunc);
-        document.addEventListener('blur', pointerUpFunc);
+        this.#addEventListenerWithCleanUp(document, 'mouseup', pointerUpFunc);
+        this.#addEventListenerWithCleanUp(document, 'touchend', pointerUpFunc);
+        this.#addEventListenerWithCleanUp(document, 'blur', pointerUpFunc);
 
+    }
+
+    #initTitleBar() {
+        const titlebarControl = this.windowElement.querySelector('.titlebar .control');
+
+        const closeBtnEl = createHTMLElement('div', {class: 'button close'});
+        this.#addEventListenerWithCleanUp(closeBtnEl, 'click', () => {
+            this.desktopDisplayManager.removeWindow(this);
+        });
+
+        titlebarControl.appendChild(closeBtnEl);
+    }
+
+    getType() {
+        return this.type;
+    }
+
+    addToCleanFunc(func) {
+        // will be called when window close
+        this.cleanFunc.push(func);
+    }
+
+
+    checkWinInsideDesktopArea() {
+        const areaSize = this.desktopDisplayManager.getDesktopAreaSize();
+        if (
+            (this.windowState.window.posY < 0) || 
+            (this.windowState.window.posX < 0) ||
+            ((this.windowState.window.posY + this.windowState.window.sizeY) > areaSize[1]) ||
+            ((this.windowState.window.posX + this.windowState.window.sizeX) > areaSize[0])
+        ) {
+            
+            return false;
+        } else {
+            return true;
+        }
     }
 
     getWindow() {
@@ -437,8 +482,20 @@ export class MovingWindow {
 
         this.actionTimeout = setTimeout(() => {
             this.windowElement.classList.add('open');
-        }, 250);
+        }, 100);
         
+    }
+
+    close(callback) {
+        clearTimeout(this.actionTimeout);
+        this.windowElement.classList.remove('open');
+        this.actionTimeout = setTimeout(() => {
+            // before remove run all the clean funcs
+            this.cleanFunc.forEach(func => func());
+
+            // callback
+            callback();
+        }, 150);
     }
 }
 
@@ -465,6 +522,20 @@ export class DesktopDisplay {
         // init listeners
         this.#initListners();
 
+    }
+
+    removeWindow(window) {
+        const winIndex = this.movingWins.indexOf(window);
+        if (winIndex > -1) {
+            // remove
+            this.movingWins.splice(winIndex, 1);
+            
+            // call window close function
+            window.close(() => {
+                // remove from desktop
+                this.desktopElementWindowsContainer.removeChild(window.getWindow());
+            });
+        }
     }
 
     #initListners() {
