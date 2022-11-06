@@ -2,51 +2,54 @@
 .window {
     .panel-resize {
         position: absolute;
-
         &.se {
-            width: 0.5rem;
-            height: 0.5rem;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 100%;
 
             bottom: 0;
             right: 0;
             z-index: 1;
-            transform: translate(50%, 50%);
+            transform: translate(30%, 30%);
 
             cursor: nwse-resize;
         }
 
         &.sw {
-            width: 0.5rem;
-            height: 0.5rem;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 100%;
 
             bottom: 0;
             left: 0;
             z-index: 1;
-            transform: translate(-50%, 50%);
+            transform: translate(-30%, 30%);
 
             cursor: nesw-resize;
         }
 
         &.ne {
-            width: 0.5rem;
-            height: 0.5rem;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 100%;
 
             top: 0;
             right: 0;
             z-index: 1;
-            transform: translate(50%, -50%);
+            transform: translate(30%, -30%);
 
             cursor: nesw-resize;
         }
 
         &.nw {
-            width: 0.5rem;
-            height: 0.5rem;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 100%;
 
             top: 0;
             left: 0;
             z-index: 1;
-            transform: translate(-50%, -50%);
+            transform: translate(-30%, -30%);
 
             cursor: nwse-resize;
         }
