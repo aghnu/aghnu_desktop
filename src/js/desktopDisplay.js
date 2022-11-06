@@ -63,10 +63,10 @@ export class MovingWindow {
         if (topWindow) {
 
             // calculate size and pos from top window
-            const initPosX = topWindow.windowState.window.posX + 20;
-            const initPosY = topWindow.windowState.window.posY + 20;
-            const initSizeX = topWindow.windowState.window.sizeX;
-            const initSizeY = topWindow.windowState.window.sizeY;
+            const initPosX = topWindow.windowState.posX + 20;
+            const initPosY = topWindow.windowState.posY + 20;
+            const initSizeX = topWindow.windowState.sizeX;
+            const initSizeY = topWindow.windowState.sizeY;
 
             // set size and pos
             this.#updateStateWindowSize([initSizeX, initSizeY]);  
@@ -74,8 +74,8 @@ export class MovingWindow {
             
             if (this.checkWinInsideDesktopArea() === false) {
                 // calculate size and pos from top window
-                const initPosX = topWindow.windowState.window.posX + 20;
-                const initPosY = topWindow.windowState.window.posY;
+                const initPosX = topWindow.windowState.posX + 20;
+                const initPosY = topWindow.windowState.posY;
 
                 // set size and pos
                 this.#updateStateWindowSize([initSizeX, initSizeY]);  
@@ -83,8 +83,8 @@ export class MovingWindow {
 
                 if (this.checkWinInsideDesktopArea() === false) {
                     // calculate size and pos from top window
-                    const initPosX = topWindow.windowState.window.posX;
-                    const initPosY = topWindow.windowState.window.posY + 20;
+                    const initPosX = topWindow.windowState.posX;
+                    const initPosY = topWindow.windowState.posY + 20;
     
                     // set size and pos
                     this.#updateStateWindowSize([initSizeX, initSizeY]);  
@@ -98,7 +98,7 @@ export class MovingWindow {
 
                         // same position with old top window or size not valid
                         if (
-                            (topWindow.windowState.window.posX === this.windowState.posX) && (topWindow.windowState.window.posY === this.windowState.posY) ||
+                            (topWindow.windowState.posX === this.windowState.posX) && (topWindow.windowState.posY === this.windowState.posY) ||
                             (this.checkWinInsideDesktopArea() === false)
                         ) {
                             generateInitSize();
@@ -250,22 +250,6 @@ export class MovingWindow {
         const pointerStateCurrent = this.desktopDisplayManager.getPointerState();
 
         switch(direction) {
-            case 'se':
-                this.#resizePanelToDirection('s', windowStateSnapshot, pointerStateSnapshot);
-                this.#resizePanelToDirection('e', windowStateSnapshot, pointerStateSnapshot);
-                break;
-            case 'sw':
-                this.#resizePanelToDirection('s', windowStateSnapshot, pointerStateSnapshot);
-                this.#resizePanelToDirection('w', windowStateSnapshot, pointerStateSnapshot);
-                break;
-            case 'ne':
-                this.#resizePanelToDirection('n', windowStateSnapshot, pointerStateSnapshot);
-                this.#resizePanelToDirection('e', windowStateSnapshot, pointerStateSnapshot);
-                break;
-            case 'nw':
-                this.#resizePanelToDirection('n', windowStateSnapshot, pointerStateSnapshot);
-                this.#resizePanelToDirection('w', windowStateSnapshot, pointerStateSnapshot);
-                break;
             case 'n':
                 {
                     const newPosY = windowStateSnapshot.posY + pointerStateCurrent.posY - pointerStateSnapshot.posY;
@@ -351,7 +335,38 @@ export class MovingWindow {
         // pointer action functions
         const pointerMoveFunc = () => {
             if (windowResizeState.windowMouseDown) {
-                this.#resizePanelToDirection(windowResizeState.target.customtype, windowResizeState.windowStateSnapshot, windowResizeState.pointerStateSnapshot);
+                switch(windowResizeState.target.customtype) {
+                    case 'se':
+                        this.#resizePanelToDirection('s', windowResizeState.windowStateSnapshot, windowResizeState.pointerStateSnapshot);
+                        this.#resizePanelToDirection('e', windowResizeState.windowStateSnapshot, windowResizeState.pointerStateSnapshot);
+                        break;
+                    case 'sw':
+                        this.#resizePanelToDirection('s', windowResizeState.windowStateSnapshot, windowResizeState.pointerStateSnapshot);
+                        this.#resizePanelToDirection('w', windowResizeState.windowStateSnapshot, windowResizeState.pointerStateSnapshot);
+                        break;
+                    case 'ne':
+                        this.#resizePanelToDirection('n', windowResizeState.windowStateSnapshot, windowResizeState.pointerStateSnapshot);
+                        this.#resizePanelToDirection('e', windowResizeState.windowStateSnapshot, windowResizeState.pointerStateSnapshot);
+                        break;
+                    case 'nw':
+                        this.#resizePanelToDirection('n', windowResizeState.windowStateSnapshot, windowResizeState.pointerStateSnapshot);
+                        this.#resizePanelToDirection('w', windowResizeState.windowStateSnapshot, windowResizeState.pointerStateSnapshot);
+                        break;
+
+                    case 'n':
+                        this.#resizePanelToDirection('n', windowResizeState.windowStateSnapshot, windowResizeState.pointerStateSnapshot);
+                        break;
+                    case 'w':
+                        this.#resizePanelToDirection('w', windowResizeState.windowStateSnapshot, windowResizeState.pointerStateSnapshot);
+                        break;
+                    case 's':
+                        this.#resizePanelToDirection('s', windowResizeState.windowStateSnapshot, windowResizeState.pointerStateSnapshot);
+                        break;
+                    case 'e':
+                        this.#resizePanelToDirection('e', windowResizeState.windowStateSnapshot, windowResizeState.pointerStateSnapshot);
+                        break;
+                }
+                
                 this.#updateWindow();
             }
         }
