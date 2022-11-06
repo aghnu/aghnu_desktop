@@ -57,7 +57,7 @@ export class MovingWindow {
 
         const generateInitPos = () => {
             const initPosX = (areaSize[0] - this.windowState.window.sizeX) / 2;
-            const initPosY = (areaSize[1] - this.windowState.window.sizeY) / 2;
+            const initPosY = (areaSize[1] - this.windowState.window.sizeY) / 3;
             
             this.#updateStateWindowPosition([initPosX, initPosY]);        
         }
@@ -74,32 +74,46 @@ export class MovingWindow {
             this.#updateStateWindowSize([initSizeX, initSizeY]);  
             this.#updateStateWindowPosition([initPosX, initPosY]);   
             
-
-            // try if valid init position
             if (this.checkWinInsideDesktopArea() === false) {
-                // not valid
-                // try to keep size and retry
-                generateInitPos();
+                // calculate size and pos from top window
+                const initPosX = topWindow.windowState.window.posX + 20;
+                const initPosY = topWindow.windowState.window.posY;
 
-                // same position with old top window or size not valid
-                if (
-                    (topWindow.windowState.window.posX === this.windowState.window.posX) && (topWindow.windowState.window.posY === this.windowState.window.posY) ||
-                    (this.checkWinInsideDesktopArea() === false)
-                ) {
-                    generateInitSize();
-                    generateInitPos();
-                } 
-            }            
+                // set size and pos
+                this.#updateStateWindowSize([initSizeX, initSizeY]);  
+                this.#updateStateWindowPosition([initPosX, initPosY]); 
+
+                if (this.checkWinInsideDesktopArea() === false) {
+                    // calculate size and pos from top window
+                    const initPosX = topWindow.windowState.window.posX;
+                    const initPosY = topWindow.windowState.window.posY + 20;
+    
+                    // set size and pos
+                    this.#updateStateWindowSize([initSizeX, initSizeY]);  
+                    this.#updateStateWindowPosition([initPosX, initPosY]);  
+                    
+                    // try if valid init position
+                    if (this.checkWinInsideDesktopArea() === false) {
+                        // not valid
+                        // try to keep size and retry
+                        generateInitPos();
+
+                        // same position with old top window or size not valid
+                        if (
+                            (topWindow.windowState.window.posX === this.windowState.window.posX) && (topWindow.windowState.window.posY === this.windowState.window.posY) ||
+                            (this.checkWinInsideDesktopArea() === false)
+                        ) {
+                            generateInitSize();
+                            generateInitPos();
+                        } 
+                    } 
+                }
+            }
 
         } else {
             generateInitSize();
             generateInitPos();
         }
-        
-        
-        
-
-
         
     }
 
