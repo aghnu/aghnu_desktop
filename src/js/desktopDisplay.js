@@ -35,10 +35,24 @@ export class MovingWindow {
 
         // intervals
         this.actionTimeout = null;
+
+        // snapping
+        this.snapping = false;
+        this.snappingSaveState = null;
     }
 
-    setWindowStateAndUpdate(subState) {
+    windowSnapToState(subState) {
+        this.snapping = true;
+        this.windowElement.classList.add('snapped');
+        this.snappingSaveState = this.getWindowState();
         Object.assign(this.windowState, subState);
+        this.#updateWindow();
+    }
+
+    windowUnSnap() {
+        this.snapping = false;
+        this.windowElement.classList.remove('snapped');
+        this.windowState = this.snappingSaveState;
         this.#updateWindow();
     }
 
@@ -222,6 +236,21 @@ export class MovingWindow {
 
                 // update ghost window
                 this.desktopDisplayManager.turnOnGhostWindow(this);
+
+                // unsnap
+                if (this.snapping) {
+                    const posXUpdate = pointerStateCurrent.posX - ((pointerStateCurrent.posX - this.windowState.posX) / this.windowState.sizeX) * this.snappingSaveState.sizeX;
+                    const posYUpdate = this.windowState.posY;
+                    const subSaveStateUpdate = {
+                        posX: posXUpdate,
+                        posY: posYUpdate
+                    }
+
+                    Object.assign(this.snappingSaveState, subSaveStateUpdate);
+
+                    this.windowUnSnap();
+                    pointerDownFunc();
+                }
             }            
         }
 
@@ -472,20 +501,28 @@ export class MovingWindow {
     desktopSizeChange(oldSize) {
         const newSize = this.desktopDisplayManager.getDesktopAreaSize();
 
-        const newPosX = (this.windowState.posX >= 0) ? this.windowState.posX / oldSize[0] * newSize[0] : (()=>{
+        const newWindowPosX = (this.windowState.posX >= 0) ? this.windowState.posX / oldSize[0] * newSize[0] : (()=>{
             // special case left is out of desktop's left edge
             // make the change reverse
             const posXDiff = this.windowState.posX / oldSize[0] * newSize[0] - this.windowState.posX;
             return this.windowState.posX - posXDiff;
         })();
-        const newPosY = this.windowState.posY / oldSize[1] * newSize[1];
-    
-
-
+        const newWindowPosY = this.windowState.posY / oldSize[1] * newSize[1];
         
-        this.#updateStateWindowPosition([newPosX, newPosY]);
-        this.#updateWindow();
+        const newWindowSizeX = this.windowState.sizeX / oldSize[0] * newSize[0];
+        const newWindowSizeY = this.windowState.sizeY / oldSize[1] * newSize[1];
 
+
+        if (this.snapping) {
+            this.windowState.sizeX = newWindowSizeX;
+            this.windowState.sizeY = newWindowSizeY;
+            this.windowState.posX = newWindowPosX;
+            this.windowState.posY = newWindowPosY;
+            this.#updateWindow();
+        } else {
+            this.#updateStateWindowPosition([newWindowPosX, newWindowPosY]);
+            this.#updateWindow();            
+        }
     }
 
     loadContent(content) {
@@ -781,7 +818,7 @@ export class DesktopDisplay {
                 this.ghostWindowElement.classList.remove('show');
 
                 // change window size
-                this.ghostPanelTargetWindow.setWindowStateAndUpdate(this.ghostPanelActiveWindowState);
+                this.ghostPanelTargetWindow.windowSnapToState(this.ghostPanelActiveWindowState);
                 
             }
 

@@ -1,5 +1,6 @@
 
 .window {
+
     .panel-resize {
         position: absolute;
         &.se {
@@ -205,6 +206,12 @@
 
     .content-display {
         transition: opacity 0.25s, transform 0.25s;
+    }
+
+    &.snapped {
+        .panel-resize {
+            pointer-events: none;
+        }
     }
 
     &.frontstage {
