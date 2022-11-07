@@ -258,6 +258,10 @@
         }
 
         &.moving {
+            .panel-resize {
+                pointer-events: none;
+            }
+
             .content-display {
                 
                 transform: scale(1.01);
