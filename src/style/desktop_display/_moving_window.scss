@@ -204,13 +204,13 @@
 .window {
 
     .content-display {
-        transition: opacity 0.15s, transform 0.15s;
+        transition: opacity 0.25s, transform 0.25s;
     }
 
     &.frontstage {
 
         .content-display {
-            transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+            transition: opacity 0.25s, transform 0.25s, box-shadow 0.25s;
      
         }
 

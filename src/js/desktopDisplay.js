@@ -37,6 +37,11 @@ export class MovingWindow {
         this.actionTimeout = null;
     }
 
+    setWindowStateAndUpdate(subState) {
+        Object.assign(this.windowState, subState);
+        this.#updateWindow();
+    }
+
     getWindowState() {
         return JSON.parse(JSON.stringify(this.windowState));
     }
@@ -214,6 +219,9 @@ export class MovingWindow {
                     windowMovingState.windowStateSnapshot.posY + pointerStateCurrent.posY - windowMovingState.pointerPositionSnapshot.posY
                 ]);
                 this.#updateWindow();
+
+                // update ghost window
+                this.desktopDisplayManager.turnOnGhostWindow(this);
             }            
         }
 
@@ -227,6 +235,7 @@ export class MovingWindow {
         const pointerUpFunc = () => {
             this.windowElement.classList.remove('moving');
             windowMovingState.windowMouseDown = false;
+            this.desktopDisplayManager.turnOffGhostWindow();
         }
 
         this.#addEventListenerWithCleanUp(document, 'mousemove', pointerMoveFunc);
@@ -516,6 +525,7 @@ export class DesktopDisplay {
         this.desktopElement = this.#contructDesktop();
         this.desktopElementWindowsContainer = this.desktopElement.querySelector('.windows');
         this.desktopElementActionsBar = this.desktopElement.querySelector('.actions');
+        this.ghostWindowElement = null;
         this.movingWins = [];
 
         this.clockInterval = null;
@@ -524,6 +534,7 @@ export class DesktopDisplay {
         this.parentContainer.appendChild(this.desktopElement);
         // this.#initClock();
         this.#initActionApps();
+        this.#initGhostWindow();
 
         // state
         this.desktopSizeX = this.desktopElementWindowsContainer.offsetWidth;        // initial value
@@ -536,6 +547,13 @@ export class DesktopDisplay {
 
         // init listeners
         this.#initListners();
+
+        // ghost panel
+        this.GHOST_PANEL_CONFIGURATION = {CLOSE: 0, LEFT: 1, RIGHT: 2, TOP: 3};
+        this.ghostPanelConfig = this.GHOST_PANEL_CONFIGURATION.CLOSE;
+        this.ghostPanelActiveWindowState = null;
+        this.ghostPanelAnimationTimeout = null;
+        this.ghostPanelTargetWindow = null;
 
     }
 
@@ -566,6 +584,21 @@ export class DesktopDisplay {
 
         this.pointerState.posX = PosX;
         this.pointerState.posY = PosY;
+
+        // update ghost panel config
+        if ((PosX >= 0) && (PosX <= 16)) {
+            // left
+            this.ghostPanelConfig = this.GHOST_PANEL_CONFIGURATION.LEFT;
+        } else if ((PosX >= desktopAreaSize[0] - 16) && (PosX <= desktopAreaSize[0])) {
+            // right
+            this.ghostPanelConfig = this.GHOST_PANEL_CONFIGURATION.RIGHT;
+        } else if (PosY <= 0) {
+            // top
+            this.ghostPanelConfig = this.GHOST_PANEL_CONFIGURATION.TOP;
+        } else {
+            // close
+            this.ghostPanelConfig = this.GHOST_PANEL_CONFIGURATION.CLOSE;
+        }
     }
 
     #initListners() {
@@ -590,6 +623,172 @@ export class DesktopDisplay {
         // mouse position
         document.addEventListener('mousemove', (e) => {this.updatePointerPosition(e.clientX, e.clientY)});
         document.addEventListener('touchmove', (e) => {this.updatePointerPosition(e.touches[0].clientX, e.touches[0].clientY)});
+    }
+
+    #initGhostWindow() {
+        this.ghostWindowElement = createHTMLElement('div', {class: 'ghost-window'}, [
+            createHTMLElement('div', {class: 'inner'}),
+        ]);
+        this.desktopElementWindowsContainer.appendChild(this.ghostWindowElement);
+    }
+
+    turnOnGhostWindow(window) {
+        const windowState = window.getWindowState();
+        const desktopAreaSize = this.getDesktopAreaSize();
+        this.ghostWindowElement.style.zIndex = window.getWindow().style.zIndex;
+        this.ghostPanelTargetWindow = window;
+
+        const moveGhostWindowToOrigin = () => {
+            const windowSubState = {
+                posX: windowState.posX,
+                posY: windowState.posY,
+                sizeX: windowState.sizeX,
+                sizeY: windowState.sizeY
+            }
+
+            this.ghostWindowElement.style.left = `${windowSubState.posX}px`;
+            this.ghostWindowElement.style.top = `${windowSubState.posY}px`;
+            this.ghostWindowElement.style.width = `${windowSubState.sizeX}px`;
+            this.ghostWindowElement.style.height = `${windowSubState.sizeY}px`;   
+
+            return windowSubState;
+        }
+
+        const moveGhostWindowToTop = () => {
+            const windowSubState = {
+                posX: 0,
+                posY: 0,
+                sizeX: desktopAreaSize[0],
+                sizeY: desktopAreaSize[1]
+            }
+
+            if (desktopAreaSize[0] >= windowState.sizeMinX) {
+                this.ghostWindowElement.style.left = `${windowSubState.posX}px`;
+                this.ghostWindowElement.style.top = `${windowSubState.posY}px`;
+                this.ghostWindowElement.style.width = `${windowSubState.sizeX}px`;
+                this.ghostWindowElement.style.height = `${windowSubState.sizeY}px`;   
+                return windowSubState;               
+            } else {
+                return null;
+            }
+ 
+        }
+
+        const moveGhostWindowToLeft = () => {
+            const windowSubState = {
+                posX: 0,
+                posY: 0,
+                sizeX: desktopAreaSize[0]/2,
+                sizeY: desktopAreaSize[1]
+            }
+
+
+            if (desktopAreaSize[0]/2 >= windowState.sizeMinX) {
+                this.ghostWindowElement.style.left = `${windowSubState.posX}px`;
+                this.ghostWindowElement.style.top = `${windowSubState.posY}px`;
+                this.ghostWindowElement.style.width = `${windowSubState.sizeX}px`;
+                this.ghostWindowElement.style.height = `${windowSubState.sizeY}px`; 
+                return windowSubState;                
+            } else {
+                return moveGhostWindowToTop();
+            }
+ 
+        }
+
+        const moveGhostWindowToRight = () => {
+            const windowSubState = {
+                posX: desktopAreaSize[0]/2,
+                posY: 0,
+                sizeX: desktopAreaSize[0]/2,
+                sizeY: desktopAreaSize[1]
+            }
+
+            if ((desktopAreaSize[0]/2 >= windowState.sizeMinX)) {
+                this.ghostWindowElement.style.left = `${windowSubState.posX}px`;
+                this.ghostWindowElement.style.top = `${windowSubState.posY}px`;
+                this.ghostWindowElement.style.width = `${windowSubState.sizeX}px`;
+                this.ghostWindowElement.style.height = `${windowSubState.sizeY}px`; 
+                return windowSubState;                
+            } else {
+                return moveGhostWindowToTop();
+            }
+        }
+
+
+        if (this.ghostPanelActiveWindowState !== null) {
+
+            switch(this.ghostPanelConfig) {
+                case this.GHOST_PANEL_CONFIGURATION.CLOSE:
+                    this.ghostPanelActiveWindowState = null;
+                    moveGhostWindowToOrigin();
+                    this.ghostWindowElement.classList.remove('show');   
+                    break;
+                case this.GHOST_PANEL_CONFIGURATION.LEFT:
+
+                    this.ghostPanelActiveWindowState = moveGhostWindowToLeft();
+                    break;
+                case this.GHOST_PANEL_CONFIGURATION.RIGHT:
+                    this.ghostPanelActiveWindowState = moveGhostWindowToRight();
+
+                    break;
+                case this.GHOST_PANEL_CONFIGURATION.TOP:
+                    this.ghostPanelActiveWindowState = moveGhostWindowToTop();
+                    break;
+            }
+
+        } else {
+
+            switch(this.ghostPanelConfig) {
+                case this.GHOST_PANEL_CONFIGURATION.CLOSE:
+                    moveGhostWindowToOrigin();  
+                    break;
+                case this.GHOST_PANEL_CONFIGURATION.LEFT:
+                    this.ghostPanelActiveWindowState = moveGhostWindowToLeft();
+                    if (this.ghostPanelActiveWindowState !== null) {
+                        this.ghostWindowElement.classList.add('show');
+                    }
+                    break;
+                case this.GHOST_PANEL_CONFIGURATION.RIGHT:
+                    this.ghostPanelActiveWindowState = moveGhostWindowToRight();
+                    if (this.ghostPanelActiveWindowState !== null) {
+                        this.ghostWindowElement.classList.add('show');
+                    }
+                    
+                    break;
+                case this.GHOST_PANEL_CONFIGURATION.TOP:
+                    this.ghostPanelActiveWindowState = moveGhostWindowToTop();
+                    if (this.ghostPanelActiveWindowState !== null) {
+                        this.ghostWindowElement.classList.add('show');
+                    }
+                    
+                    break;
+            }
+
+        }
+    }
+
+    turnOffGhostWindow() {
+        if (this.ghostPanelTargetWindow !== null) {
+            const windowState = this.ghostPanelTargetWindow.getWindowState();
+            this.ghostWindowElement.style.zIndex = this.ghostPanelTargetWindow.getWindow().style.zIndex;
+            
+            if (this.ghostPanelActiveWindowState !== null) {
+                // turn off ghost panel
+                this.ghostWindowElement.style.left = `${windowState.posX}px`;
+                this.ghostWindowElement.style.top = `${windowState.posY}px`;
+                this.ghostWindowElement.style.width = `${windowState.sizeX}px`;
+                this.ghostWindowElement.style.height = `${windowState.sizeY}px`;
+                this.ghostWindowElement.classList.remove('show');
+
+                // change window size
+                this.ghostPanelTargetWindow.setWindowStateAndUpdate(this.ghostPanelActiveWindowState);
+                
+            }
+
+            this.ghostPanelTargetWindow = null;
+            this.ghostPanelActiveWindowState = null;            
+        }
+
     }
 
     #contructDesktop() {

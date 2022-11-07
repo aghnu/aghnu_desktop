@@ -1,3 +1,27 @@
+.desktop {
+    .ghost-window {
+        pointer-events: none;
+        position: absolute;
+
+        opacity: 0;
+        box-sizing: border-box;
+        padding: 0.3rem;
+        transition: width 0.25s, height 0.25s, top 0.25s, left 0.25s, opacity 0.25s;
+
+        .inner {
+            width: 100%;
+            height: 100%;
+
+            border-radius: 0.55rem;
+            box-shadow: 0 0 0.55rem rgba(0, 0, 0, 0.2);
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+
+        &.show {
+            opacity: 1;
+        }
+    }
+}
 
 .desktop {
 
@@ -15,6 +39,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+
+
 
     .windows {
         position: relative;
