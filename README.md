@@ -11,6 +11,7 @@ Features:
 I decided to rewrite this project using Vue.js + TypeScript as a way to practice writing Vue.js applications.
 
 VueJS version: https://github.com/aghnu/aghnus_desktop_vuejs
+<br/>Vanilla version live demo: https://www.aghnu.me/archive/aghnus_desktop_vanilla/
 
 <p align="center">
 <img alt="aghnus_desktop_vanillaJS_final" width="100%" src=https://user-images.githubusercontent.com/46549455/202988705-4d886365-d674-4235-9972-6a1909bb6189.png>
